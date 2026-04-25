@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="et">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TaluGPT — minimal ask demo</title>
+    <style>
+      body {
+        margin: 0;
+        font: 16px/1.5 system-ui, sans-serif;
+        background: #f3eedf;
+        color: #1a1f1a;
+      }
+      main { max-width: 640px; margin: 0 auto; padding: 48px 20px; }
+      h1 { font-family: Georgia, serif; font-size: 1.8rem; margin: 0 0 20px; }
+      form { display: flex; gap: 8px; margin-bottom: 20px; }
+      input {
+        flex: 1; padding: 10px 12px;
+        border: 1px solid #cdc4a8; border-radius: 0;
+        background: #fbf7eb; font: inherit;
+      }
+      button {
+        padding: 10px 16px; border: 0; background: #1f4424; color: #fbf7eb;
+        font: inherit; font-weight: 600; cursor: pointer;
+      }
+      #chat-output {
+        background: #fbf7eb;
+        border: 1px solid #cdc4a8;
+        padding: 16px;
+        min-height: 80px;
+        white-space: pre-wrap; /* belt + braces with innerText */
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>TaluGPT — küsi midagi</h1>
+      <form id="ask-form">
+        <input id="ask-input" placeholder="nt. Kus saab Viimsis toorpiima?" />
+        <button type="submit">Küsi</button>
+      </form>
+      <div id="chat-output">Vastus ilmub siia.</div>
+    </main>
+    <script src="ask.js"></script>
+    <script>
+      document.getElementById("ask-form").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const q = document.getElementById("ask-input").value.trim();
+        if (q) askTaluGPT(q);
+      });
+    </script>
+  </body>
+</html>

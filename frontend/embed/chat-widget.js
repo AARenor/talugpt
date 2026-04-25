@@ -121,7 +121,8 @@
   function addMessage(kind, text) {
     const node = document.createElement("div");
     node.className = `rag-widget-message ${kind}`;
-    node.textContent = text;
+    // innerText (not textContent) renders "\n" as real line breaks.
+    node.innerText = text;
     messages.appendChild(node);
     messages.scrollTop = messages.scrollHeight;
   }
@@ -148,17 +149,20 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query })
       });
-      const payload = await response.json();
-      const normalized = typeof payload === "string" ? safeParse(payload) : payload;
-      const answer =
-        normalized?.answer ||
-        normalized?.output ||
-        normalized?.text ||
-        normalized?.detail ||
+      let payload = await response.json();
+      if (typeof payload === "string") payload = safeParse(payload);
+      if (Array.isArray(payload)) payload = payload[0] ?? {};
+      let answer =
+        payload?.answer ||
+        payload?.output ||
+        payload?.text ||
+        payload?.detail ||
         "Request failed.";
-      thinking.textContent = answer;
+      // Restore real newlines if the upstream double-escaped.
+      if (typeof answer === "string") answer = answer.replace(/\\n/g, "\n");
+      thinking.innerText = answer;
     } catch (error) {
-      thinking.textContent = "The chat request failed. Check that the backend is running and CORS is allowed.";
+      thinking.innerText = "The chat request failed. Check that the backend is running and CORS is allowed.";
     }
   });
 
