@@ -116,6 +116,10 @@ const WEBHOOK_URL = "https://n8n.arleserver.cfd/webhook/codex-qdrant-chat";
 
 > ⚠ The Chat Trigger node in n8n must list your site origin under **Allowed Origins (CORS)** — otherwise the browser blocks the request.
 
+### The n8n workflow
+
+The full backend workflow — Google Drive folder trigger → embed → Qdrant insert → chat trigger → Qdrant retrieval tool → OpenRouter LLM → Redis chat memory — is exported as **[`n8nbackendworkflow.json`](n8nbackendworkflow.json)**. Import it into your own n8n instance via *Workflows → Import from file*, then re-attach your own credentials (Google Drive, Qdrant, OpenRouter, Redis) — only credential *IDs* are exported, never the secrets.
+
 ---
 
 ## Tech stack

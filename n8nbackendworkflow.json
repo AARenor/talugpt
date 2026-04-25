@@ -1,0 +1,541 @@
+{
+  "name": "TaluGPT",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $json.id }}"
+        },
+        "options": {
+          "googleFileConversion": {
+            "conversion": {
+              "docsToFormat": "text/plain"
+            }
+          }
+        }
+      },
+      "id": "5fdad235-c900-4239-8948-64e6997d577c",
+      "name": "Download File",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        304,
+        304
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "uzXMVbVW6uKjzzoU",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "dataType": "binary",
+        "binaryMode": "specificField",
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "record_id",
+                "value": "={{ $json.id }}"
+              },
+              {
+                "name": "record_name",
+                "value": "={{ $json.name }}"
+              },
+              {
+                "name": "kind",
+                "value": "={{ $json.kind }}"
+              },
+              {
+                "name": "county",
+                "value": "={{ $json.county || \"\" }}"
+              },
+              {
+                "name": "municipality",
+                "value": "={{ $json.municipality || \"\" }}"
+              },
+              {
+                "name": "lat",
+                "value": "={{ $json.lat ?? \"\" }}"
+              },
+              {
+                "name": "lng",
+                "value": "={{ $json.lng ?? \"\" }}"
+              },
+              {
+                "name": "products",
+                "value": "={{ Array.isArray($json.products) ? $json.products.join(\", \") : \"\" }}"
+              },
+              {
+                "name": "source_file",
+                "value": "={{ $json.source_file || $binary.data.fileName || \"\" }}"
+              },
+              {
+                "name": "file_id",
+                "value": "={{ $json.file_id || \"\" }}"
+              }
+            ]
+          }
+        }
+      },
+      "id": "312189c2-cbd7-4e82-a254-79dbd077e806",
+      "name": "Default Data Loader",
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        544
+      ]
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-embedding-2"
+      },
+      "id": "9919b43a-b766-4819-b3f9-51cce79fd553",
+      "name": "Embeddings Google Gemini",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        720,
+        544
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Jdk7GuvWMOqsjV5S",
+          "name": "Tehisabilise 2.5 flash"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "qdrantCollection": {
+          "__rl": true,
+          "mode": "id",
+          "value": "codex_drive_rag"
+        },
+        "options": {}
+      },
+      "id": "c9333a2f-075e-467f-a202-892b76e37bd1",
+      "name": "Qdrant Insert",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+      "typeVersion": 1.1,
+      "position": [
+        752,
+        304
+      ],
+      "credentials": {
+        "qdrantApi": {
+          "id": "5MPdtYdN292pILmu",
+          "name": "Qdrant account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "codex-qdrant-chat",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "380400bf-d9dd-454f-a929-5bfa6bdb6ed3",
+      "name": "Chat Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        768
+      ],
+      "webhookId": "f4c9a59f-bef7-462a-93d8-63eda0392ccb"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "fa16a983-8043-4600-95f9-4413bb480916",
+              "name": "chatInput",
+              "type": "string",
+              "value": "={{ $json.body.query || $json.query || $json.body.message || \"\" }}"
+            },
+            {
+              "id": "3b5fb5d6-0515-4e52-b824-2318696ae2e8",
+              "name": "sessionId",
+              "type": "string",
+              "value": "={{ $json.body.sessionId || $json.headers[\"x-session-id\"] || $json.query.sessionId || $execution.id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e366a7d5-bf74-46dd-a5c1-b2b84a62c6f0",
+      "name": "Edit Fields",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        240,
+        768
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.chatInput }}",
+        "options": {
+          "systemMessage": "Answer factual questions from the ingested Google Drive knowledge base. Use chat history only for conversational continuity, clarifications, and user-specific context from this same session. If a factual answer is not in the documents and not established in the current chat session, say you do not know from the current knowledge base."
+        }
+      },
+      "id": "60b3479d-7416-436f-ac26-a5940a7abea0",
+      "name": "RAG AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        528,
+        768
+      ]
+    },
+    {
+      "parameters": {
+        "model": "minimax/minimax-m2.5:free",
+        "options": {}
+      },
+      "id": "5cd70823-f904-402b-b9cf-ee4cea311377",
+      "name": "OpenRouter Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        496,
+        992
+      ],
+      "credentials": {
+        "openRouterApi": {
+          "id": "IshD7AlH7Kq53C3c",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Search the ingested Google Drive documents for relevant facts before answering.",
+        "qdrantCollection": {
+          "__rl": true,
+          "value": "codex_drive_rag",
+          "mode": "list",
+          "cachedResultName": "codex_drive_rag"
+        },
+        "options": {}
+      },
+      "id": "fff90b78-5710-4d58-a1c0-226e83211c98",
+      "name": "Qdrant Retrieval Tool",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+      "typeVersion": 1.3,
+      "position": [
+        800,
+        992
+      ],
+      "credentials": {
+        "qdrantApi": {
+          "id": "5MPdtYdN292pILmu",
+          "name": "Qdrant account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-embedding-2"
+      },
+      "id": "1dcba56a-078e-4723-bc6c-c42bd3780052",
+      "name": "Embeddings Google Gemini Chat",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        800,
+        1152
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Jdk7GuvWMOqsjV5S",
+          "name": "Tehisabilise 2.5 flash"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ {\"answer\": $json.output || $json.text || $json.response || \"\"} }}",
+        "options": {}
+      },
+      "id": "296ae527-3db7-431b-bbe4-0902e9741678",
+      "name": "Chat Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        928,
+        768
+      ]
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "specificFolder",
+        "folderToWatch": {
+          "__rl": true,
+          "mode": "id",
+          "value": "17g9rgh0MIhJ2gKb_pUlLxFGTYci1zoId"
+        },
+        "event": "fileCreated",
+        "options": {
+          "fileType": "all"
+        }
+      },
+      "id": "b57340d8-2bf2-4a9f-9002-c351fe0d1fd2",
+      "name": "TaluGPT Folder Trigger",
+      "type": "n8n-nodes-base.googleDriveTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        304
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "uzXMVbVW6uKjzzoU",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $(\"Edit Fields\").first().json.sessionId }}",
+        "sessionTTL": 86400,
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryRedisChat",
+      "typeVersion": 1.5,
+      "position": [
+        656,
+        992
+      ],
+      "id": "4850a4ef-c481-4424-ae31-877f612f1801",
+      "name": "Redis Chat Memory",
+      "credentials": {
+        "redis": {
+          "id": "4soc4bEelc23yFQO",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const zlib = require('zlib');\n\nconst input = $input.first();\nconst binary = input.binary?.data;\n\nif (!binary?.data) {\n  throw new Error('Missing binary file data');\n}\n\nconst fileName = input.json.name || binary.fileName || 'input.json';\nconst mimeType = binary.mimeType || '';\n\nconst isJson =\n  fileName.toLowerCase().endsWith('.json') ||\n  fileName.toLowerCase().endsWith('.json.gz') ||\n  mimeType.includes('json') ||\n  mimeType.includes('gzip');\n\nif (!isJson) {\n  console.log(`Skipping non-JSON file: ${fileName}`);\n  return [];\n}\n\nconst rawBuffer = Buffer.from(binary.data, 'base64');\n\nlet raw;\nif (rawBuffer[0] === 0x1f && rawBuffer[1] === 0x8b) {\n  try {\n    raw = zlib.gunzipSync(rawBuffer).toString('utf8');\n    console.log('Decompressed gzip content');\n  } catch (e) {\n    throw new Error(`Failed to decompress gzip file: ${e.message}`);\n  }\n} else {\n  raw = rawBuffer.toString('utf8');\n}\n\nif (raw.length > 5000000) {\n  throw new Error(`JSON file too large for safe inline processing: ${raw.length} chars`);\n}\n\nlet parsed;\ntry {\n  parsed = JSON.parse(raw);\n} catch (error) {\n  throw new Error(`Invalid JSON in ${fileName}: ${error.message}`);\n}\n\nconst records = Array.isArray(parsed)\n  ? parsed\n  : Array.isArray(parsed.records)\n  ? parsed.records\n  : null;\n\nif (!records) {\n  throw new Error('Expected a top-level array or an object with a records array');\n}\n\nconst output = [];\n\nfor (const record of records) {\n  if (!record || typeof record !== 'object') continue;\n  if (!['farm', 'producer', 'market', 'shop'].includes(record.kind)) continue;\n  if (typeof record.name !== 'string' || !record.name.trim()) continue;\n\n  const products = Array.isArray(record.products) ? record.prod"
+      },
+      "id": "5d2a71f2-fbcb-4ce8-bf3f-1aa2e4aa8af3",
+      "name": "Parse Farms JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        544,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "reset": false
+        }
+      },
+      "id": "3fb0b8d8-dcc1-48aa-9479-f64dfd3a9e65",
+      "name": "Loop Over Items",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 1,
+      "position": [
+        1040,
+        304
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "TaluGPT Folder Trigger": {
+      "main": [
+        [
+          {
+            "node": "Download File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download File": {
+      "main": [
+        [
+          {
+            "node": "Parse Farms JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Qdrant Insert",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Qdrant Insert",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chat Webhook": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "RAG AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "RAG AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Qdrant Retrieval Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "RAG AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini Chat": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Qdrant Retrieval Tool",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RAG AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Chat Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "RAG AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Farms JSON": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Qdrant Insert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Qdrant Insert": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "a72b6df3-3dc9-4269-a934-391c38c7cde9",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "2292c20a0e63ac2bec5100fa77276bc96beeb61c817c6e98c48bd5ac5fda634c"
+  },
+  "id": "KQ2MHUWiWOreHche",
+  "tags": []
+}
