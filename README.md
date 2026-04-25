@@ -118,7 +118,7 @@ const WEBHOOK_URL = "https://n8n.arleserver.cfd/webhook/codex-qdrant-chat";
 
 ### The n8n workflow
 
-The full backend workflow — Google Drive folder trigger → embed → Qdrant insert → chat trigger → Qdrant retrieval tool → OpenRouter LLM → Redis chat memory — is exported as **[`n8nbackendworkflow.json`](n8nbackendworkflow.json)**. Import it into your own n8n instance via *Workflows → Import from file*, then re-attach your own credentials (Google Drive, Qdrant, OpenRouter, Redis) — only credential *IDs* are exported, never the secrets.
+The full backend workflow — Google Drive folder trigger → embed (Gemini) → Qdrant insert → chat trigger → Qdrant retrieval tool → **Anthropic Claude** → Redis chat memory — is exported as **[`talugpt rag.json`](talugpt%20rag.json)** (18 nodes). Import it into your own n8n instance via *Workflows → Import from file*, then re-attach your own credentials (Google Drive, Gemini, Qdrant, Anthropic, Redis) — only credential *IDs* are exported, never the secrets.
 
 ---
 

@@ -1,5 +1,5 @@
 {
-  "name": "TaluGPT",
+  "name": "TaluGPT Rag",
   "nodes": [
     {
       "parameters": {
@@ -17,13 +17,13 @@
           }
         }
       },
-      "id": "5fdad235-c900-4239-8948-64e6997d577c",
+      "id": "3a59b42a-2e04-4acb-8b86-945b452d763a",
       "name": "Download File",
       "type": "n8n-nodes-base.googleDrive",
       "typeVersion": 3,
       "position": [
-        304,
-        304
+        4656,
+        816
       ],
       "credentials": {
         "googleDriveOAuth2Api": {
@@ -34,8 +34,8 @@
     },
     {
       "parameters": {
-        "dataType": "binary",
-        "binaryMode": "specificField",
+        "jsonMode": "expressionData",
+        "jsonData": "={{ $json.embeddingText }}",
         "options": {
           "metadata": {
             "metadataValues": [
@@ -45,11 +45,11 @@
               },
               {
                 "name": "record_name",
-                "value": "={{ $json.name }}"
+                "value": "={{ $json.display_name || $json.name }}"
               },
               {
                 "name": "kind",
-                "value": "={{ $json.kind }}"
+                "value": "={{ $json.kind || \"\" }}"
               },
               {
                 "name": "county",
@@ -73,36 +73,36 @@
               },
               {
                 "name": "source_file",
-                "value": "={{ $json.source_file || $binary.data.fileName || \"\" }}"
+                "value": "={{ $(\"Download File\").first().json.name || $(\"Download File\").first().binary.data.fileName || \"\" }}"
               },
               {
                 "name": "file_id",
-                "value": "={{ $json.file_id || \"\" }}"
+                "value": "={{ $(\"Download File\").first().json.id || \"\" }}"
               }
             ]
           }
         }
       },
-      "id": "312189c2-cbd7-4e82-a254-79dbd077e806",
+      "id": "a77f6490-8188-4e78-8658-9f7d8792d9e7",
       "name": "Default Data Loader",
       "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
       "typeVersion": 1.1,
       "position": [
-        880,
-        544
+        6096,
+        1040
       ]
     },
     {
       "parameters": {
         "modelName": "models/gemini-embedding-2"
       },
-      "id": "9919b43a-b766-4819-b3f9-51cce79fd553",
+      "id": "f3cf0ce1-ea62-4930-a774-e2f2ff47ccf5",
       "name": "Embeddings Google Gemini",
       "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
       "typeVersion": 1,
       "position": [
-        720,
-        544
+        5952,
+        1024
       ],
       "credentials": {
         "googlePalmApi": {
@@ -121,13 +121,13 @@
         },
         "options": {}
       },
-      "id": "c9333a2f-075e-467f-a202-892b76e37bd1",
+      "id": "3197f27f-2f7d-448c-be29-a8ffb6ef3362",
       "name": "Qdrant Insert",
       "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
       "typeVersion": 1.1,
       "position": [
-        752,
-        304
+        5984,
+        816
       ],
       "credentials": {
         "qdrantApi": {
@@ -143,13 +143,13 @@
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "380400bf-d9dd-454f-a929-5bfa6bdb6ed3",
+      "id": "7ac6e3c2-1d4f-4ae0-a65f-8142900a6c77",
       "name": "Chat Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        0,
-        768
+        4608,
+        1104
       ],
       "webhookId": "f4c9a59f-bef7-462a-93d8-63eda0392ccb"
     },
@@ -173,13 +173,13 @@
         },
         "options": {}
       },
-      "id": "e366a7d5-bf74-46dd-a5c1-b2b84a62c6f0",
+      "id": "b2cb6443-6c61-4560-b11c-6ba89e85f860",
       "name": "Edit Fields",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        240,
-        768
+        4832,
+        1104
       ]
     },
     {
@@ -190,34 +190,14 @@
           "systemMessage": "Answer factual questions from the ingested Google Drive knowledge base. Use chat history only for conversational continuity, clarifications, and user-specific context from this same session. If a factual answer is not in the documents and not established in the current chat session, say you do not know from the current knowledge base."
         }
       },
-      "id": "60b3479d-7416-436f-ac26-a5940a7abea0",
+      "id": "f8ac5718-50bc-4865-9610-1a411eb01e86",
       "name": "RAG AI Agent",
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3.1,
       "position": [
-        528,
-        768
+        5120,
+        1104
       ]
-    },
-    {
-      "parameters": {
-        "model": "minimax/minimax-m2.5:free",
-        "options": {}
-      },
-      "id": "5cd70823-f904-402b-b9cf-ee4cea311377",
-      "name": "OpenRouter Chat Model",
-      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
-      "typeVersion": 1,
-      "position": [
-        496,
-        992
-      ],
-      "credentials": {
-        "openRouterApi": {
-          "id": "IshD7AlH7Kq53C3c",
-          "name": "OpenRouter account"
-        }
-      }
     },
     {
       "parameters": {
@@ -231,13 +211,13 @@
         },
         "options": {}
       },
-      "id": "fff90b78-5710-4d58-a1c0-226e83211c98",
+      "id": "dcd52360-1a51-424e-842e-766ee13265eb",
       "name": "Qdrant Retrieval Tool",
       "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
       "typeVersion": 1.3,
       "position": [
-        800,
-        992
+        5312,
+        1328
       ],
       "credentials": {
         "qdrantApi": {
@@ -250,13 +230,13 @@
       "parameters": {
         "modelName": "models/gemini-embedding-2"
       },
-      "id": "1dcba56a-078e-4723-bc6c-c42bd3780052",
+      "id": "cb0151d0-5e95-45a4-9c6c-66e633955455",
       "name": "Embeddings Google Gemini Chat",
       "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
       "typeVersion": 1,
       "position": [
-        800,
-        1152
+        5392,
+        1536
       ],
       "credentials": {
         "googlePalmApi": {
@@ -271,13 +251,13 @@
         "responseBody": "={{ {\"answer\": $json.output || $json.text || $json.response || \"\"} }}",
         "options": {}
       },
-      "id": "296ae527-3db7-431b-bbe4-0902e9741678",
+      "id": "066c4377-515b-4feb-befc-a4fbfe75445c",
       "name": "Chat Response",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
       "position": [
-        928,
-        768
+        5552,
+        1104
       ]
     },
     {
@@ -300,13 +280,13 @@
           "fileType": "all"
         }
       },
-      "id": "b57340d8-2bf2-4a9f-9002-c351fe0d1fd2",
+      "id": "1a92767e-52f5-4362-90d4-69e0941d6996",
       "name": "TaluGPT Folder Trigger",
       "type": "n8n-nodes-base.googleDriveTrigger",
       "typeVersion": 1,
       "position": [
-        0,
-        304
+        4432,
+        816
       ],
       "credentials": {
         "googleDriveOAuth2Api": {
@@ -325,10 +305,10 @@
       "type": "@n8n/n8n-nodes-langchain.memoryRedisChat",
       "typeVersion": 1.5,
       "position": [
-        656,
-        992
+        5184,
+        1328
       ],
-      "id": "4850a4ef-c481-4424-ae31-877f612f1801",
+      "id": "65618264-c184-42d1-acf3-1047bb56c2d5",
       "name": "Redis Chat Memory",
       "credentials": {
         "redis": {
@@ -339,31 +319,177 @@
     },
     {
       "parameters": {
-        "jsCode": "const zlib = require('zlib');\n\nconst input = $input.first();\nconst binary = input.binary?.data;\n\nif (!binary?.data) {\n  throw new Error('Missing binary file data');\n}\n\nconst fileName = input.json.name || binary.fileName || 'input.json';\nconst mimeType = binary.mimeType || '';\n\nconst isJson =\n  fileName.toLowerCase().endsWith('.json') ||\n  fileName.toLowerCase().endsWith('.json.gz') ||\n  mimeType.includes('json') ||\n  mimeType.includes('gzip');\n\nif (!isJson) {\n  console.log(`Skipping non-JSON file: ${fileName}`);\n  return [];\n}\n\nconst rawBuffer = Buffer.from(binary.data, 'base64');\n\nlet raw;\nif (rawBuffer[0] === 0x1f && rawBuffer[1] === 0x8b) {\n  try {\n    raw = zlib.gunzipSync(rawBuffer).toString('utf8');\n    console.log('Decompressed gzip content');\n  } catch (e) {\n    throw new Error(`Failed to decompress gzip file: ${e.message}`);\n  }\n} else {\n  raw = rawBuffer.toString('utf8');\n}\n\nif (raw.length > 5000000) {\n  throw new Error(`JSON file too large for safe inline processing: ${raw.length} chars`);\n}\n\nlet parsed;\ntry {\n  parsed = JSON.parse(raw);\n} catch (error) {\n  throw new Error(`Invalid JSON in ${fileName}: ${error.message}`);\n}\n\nconst records = Array.isArray(parsed)\n  ? parsed\n  : Array.isArray(parsed.records)\n  ? parsed.records\n  : null;\n\nif (!records) {\n  throw new Error('Expected a top-level array or an object with a records array');\n}\n\nconst output = [];\n\nfor (const record of records) {\n  if (!record || typeof record !== 'object') continue;\n  if (!['farm', 'producer', 'market', 'shop'].includes(record.kind)) continue;\n  if (typeof record.name !== 'string' || !record.name.trim()) continue;\n\n  const products = Array.isArray(record.products) ? record.prod"
+        "operation": "fromJson",
+        "destinationKey": "parsed",
+        "options": {}
       },
-      "id": "5d2a71f2-fbcb-4ce8-bf3f-1aa2e4aa8af3",
-      "name": "Parse Farms JSON",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
+      "id": "883e29ea-a24b-4202-99e5-bbdc61a1c3d2",
+      "name": "Extract From File",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
       "position": [
-        544,
-        304
+        4880,
+        816
       ]
     },
     {
       "parameters": {
-        "options": {
-          "reset": false
-        }
+        "fieldToSplitOut": "parsed.records",
+        "options": {}
       },
-      "id": "3fb0b8d8-dcc1-48aa-9479-f64dfd3a9e65",
-      "name": "Loop Over Items",
-      "type": "n8n-nodes-base.splitInBatches",
+      "id": "b7ba93dd-b98e-41cf-a6cd-77f4f04fdf20",
+      "name": "Split Out Records",
+      "type": "n8n-nodes-base.splitOut",
       "typeVersion": 1,
       "position": [
-        1040,
-        304
+        5104,
+        816
       ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "2fd8c6fd-0ba0-4bc4-8fd2-df2b592c1001",
+              "leftValue": "={{ $json.kind }}",
+              "rightValue": "farm",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "2fd8c6fd-0ba0-4bc4-8fd2-df2b592c1002",
+              "leftValue": "={{ $json.kind }}",
+              "rightValue": "producer",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "2fd8c6fd-0ba0-4bc4-8fd2-df2b592c1003",
+              "leftValue": "={{ $json.kind }}",
+              "rightValue": "market",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "2fd8c6fd-0ba0-4bc4-8fd2-df2b592c1004",
+              "leftValue": "={{ $json.kind }}",
+              "rightValue": "shop",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "id": "8cc6767c-cd08-4493-827e-5de31f28c57d",
+      "name": "If Farm Record",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        5328,
+        816
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "set-embed-001",
+              "name": "embeddingText",
+              "type": "string",
+              "value": "={{ [\n  $json.display_name || $json.name,\n  $json.kind ? 'Type: ' + $json.kind : '',\n  $json.county ? 'County: ' + $json.county : '',\n  $json.municipality ? 'Municipality: ' + $json.municipality : '',\n  Array.isArray($json.products) && $json.products.length ? 'Products: ' + $json.products.join(', ') : '',\n  Array.isArray($json.categories) && $json.categories.length ? 'Categories: ' + $json.categories.join(', ') : '',\n  Array.isArray($json.food_categories) && $json.food_categories.length ? 'Food categories: ' + $json.food_categories.join(', ') : '',\n  Array.isArray($json.certifications) && $json.certifications.length ? 'Certifications: ' + $json.certifications.join(', ') : '',\n  $json.contact?.website ? 'Website: ' + $json.contact.website : '',\n  $json.contact?.phone ? 'Phone: ' + $json.contact.phone : '',\n  $json.contact?.email ? 'Email: ' + $json.contact.email : '',\n  typeof $json.description === 'string' && $json.description.trim() ? $json.description.trim() : '',\n  Array.isArray($json.sources) && $json.sources.length ? 'Sources: ' + $json.sources.map(s => s?.ref).filter(Boolean).join(' | ') : ''\n].filter(Boolean).join('\\n') }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c6191fb7-0cc5-4030-b0e5-87192804e552",
+      "name": "Build Embedding Text",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        5520,
+        816
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "filter-empty-001",
+              "leftValue": "={{ $json.embeddingText.trim() }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "fa6f6680-611f-4331-897f-233b4d13fe4b",
+      "name": "Filter Empty Text",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        5728,
+        816
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "claude-opus-4-7",
+          "mode": "list",
+          "cachedResultName": "Claude Opus 4.7"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        5072,
+        1312
+      ],
+      "id": "620882c2-507e-4577-ac8e-7e4e6e8a56c5",
+      "name": "Anthropic Chat Model",
+      "credentials": {
+        "anthropicApi": {
+          "id": "ZGBSKsQCbllTt5po",
+          "name": "Anthropic account"
+        }
+      }
     }
   ],
   "pinData": {},
@@ -383,7 +509,7 @@
       "main": [
         [
           {
-            "node": "Parse Farms JSON",
+            "node": "Extract From File",
             "type": "main",
             "index": 0
           }
@@ -434,17 +560,6 @@
         ]
       ]
     },
-    "OpenRouter Chat Model": {
-      "ai_languageModel": [
-        [
-          {
-            "node": "RAG AI Agent",
-            "type": "ai_languageModel",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Qdrant Retrieval Tool": {
       "ai_tool": [
         [
@@ -489,18 +604,51 @@
         ]
       ]
     },
-    "Parse Farms JSON": {
+    "Extract From File": {
       "main": [
         [
           {
-            "node": "Loop Over Items",
+            "node": "Split Out Records",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Loop Over Items": {
+    "Split Out Records": {
+      "main": [
+        [
+          {
+            "node": "If Farm Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Farm Record": {
+      "main": [
+        [
+          {
+            "node": "Build Embedding Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Embedding Text": {
+      "main": [
+        [
+          {
+            "node": "Filter Empty Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Empty Text": {
       "main": [
         [
           {
@@ -508,16 +656,15 @@
             "type": "main",
             "index": 0
           }
-        ],
-        []
+        ]
       ]
     },
-    "Qdrant Insert": {
-      "main": [
+    "Anthropic Chat Model": {
+      "ai_languageModel": [
         [
           {
-            "node": "Loop Over Items",
-            "type": "main",
+            "node": "RAG AI Agent",
+            "type": "ai_languageModel",
             "index": 0
           }
         ]
@@ -531,7 +678,7 @@
     "callerPolicy": "workflowsFromSameOwner",
     "availableInMCP": false
   },
-  "versionId": "a72b6df3-3dc9-4269-a934-391c38c7cde9",
+  "versionId": "50fdecc0-451c-4295-84b6-df8f1eb983f5",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "2292c20a0e63ac2bec5100fa77276bc96beeb61c817c6e98c48bd5ac5fda634c"
