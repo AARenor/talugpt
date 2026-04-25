@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Embedded RAG Chat Demo</title>
+    <style>
+      body {
+        margin: 0;
+        font: 16px/1.5 system-ui, sans-serif;
+        color: #0f172a;
+        background:
+          radial-gradient(circle at top right, rgba(31, 111, 235, 0.18), transparent 28%),
+          linear-gradient(180deg, #f8fafc, #e2e8f0);
+      }
+      main {
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 72px 20px 120px;
+      }
+      h1 {
+        margin: 0 0 12px;
+        font-size: clamp(2.2rem, 6vw, 4.2rem);
+        line-height: 0.95;
+      }
+      p {
+        max-width: 56ch;
+      }
+      code {
+        background: rgba(15, 23, 42, 0.08);
+        padding: 2px 6px;
+        border-radius: 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Embedded Document Chat</h1>
+      <p>
+        This page shows the minimal site embed. Once your files are ingested from Google Drive into Qdrant,
+        the floating widget will call <code>/chat</code> on the backend and answer from those documents.
+      </p>
+      <p>
+        Change <code>data-api-base</code> in the script tag if your API runs on another host.
+      </p>
+    </main>
+    <script
+      src="http://localhost:8000/embed/chat-widget.js"
+      data-api-base="http://localhost:8000"
+      data-title="Ask the knowledge base"
+      data-accent="#0f766e"></script>
+  </body>
+</html>

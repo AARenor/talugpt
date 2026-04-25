@@ -1,0 +1,791 @@
+@import "leaflet/dist/leaflet.css";
+
+/* ------------------------------------------------------------------
+   TaluGPT — Estonian editorial almanac
+   ------------------------------------------------------------------ */
+
+:root {
+  /* Paper & ink */
+  --paper:        #f3eedf;
+  --paper-deep:   #ebe2c8;
+  --ivory:        #fbf7eb;
+  --ink:          #1a1f1a;
+  --ink-soft:     #2c2f29;
+  --muted:        #6f6a5e;
+  --rule:         #cdc4a8;
+  --rule-strong:  #a89f7e;
+
+  /* Botanical palette */
+  --moss:         #1f4424;
+  --moss-deep:    #0e2a13;
+  --moss-soft:    #2c5d35;
+  --honey:        #c89212;
+  --honey-deep:   #8d6608;
+  --clay:         #b4543a;
+  --clay-deep:    #883a23;
+  --plum:         #6b3a6b;
+  --slate:        #2a4a66;
+
+  /* Original kind colors retained for marker integrity */
+  --c-farm:       #1f4424;
+  --c-event:      #b4543a;
+  --c-market:     #c89212;
+  --c-producer:   #6b3a6b;
+  --c-shop:       #2a4a66;
+
+  /* Type stack */
+  --display: var(--font-display), "Fraunces", "Cormorant Garamond", "Hoefler Text",
+             Georgia, "Times New Roman", serif;
+  --body:    var(--font-body), "Manrope", -apple-system, BlinkMacSystemFont,
+             "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+  /* Shadows — subtle, paper-like */
+  --shadow-sm: 0 1px 2px rgba(26, 31, 26, 0.06);
+  --shadow-md: 0 1px 2px rgba(26, 31, 26, 0.06), 0 8px 24px rgba(26, 31, 26, 0.08);
+  --shadow-lg: 0 4px 12px rgba(26, 31, 26, 0.08), 0 24px 48px rgba(26, 31, 26, 0.12);
+
+}
+
+/* n8n chat overrides — placed on html/body so they win over the n8n
+   stylesheet's own :root declarations regardless of bundle order. */
+html,
+body {
+  --chat--color--primary:                #1f4424;
+  --chat--color--primary-shade-50:       #163019;
+  --chat--color--primary--shade-100:     #0e2613;
+  --chat--color--secondary:              #c89212;
+  --chat--color-secondary-shade-50:      #a07408;
+  --chat--color-light:                   #fbf7eb;
+  --chat--color-light-shade-50:          #ece5d0;
+  --chat--color-light-shade-100:         #cdc4a8;
+  --chat--color-dark:                    #1a1f1a;
+  --chat--color-typing:                  #6f6a5e;
+  --chat--header--background:            #1f4424;
+  --chat--header--color:                 #fbf7eb;
+  --chat--toggle--background:            #1f4424;
+  --chat--toggle--hover--background:     #163019;
+  --chat--toggle--active--background:    #0e2613;
+  --chat--toggle--color:                 #fbf7eb;
+  --chat--window--z-index:               1000;
+  --chat--window--border:                1px solid #cdc4a8;
+  --chat--window--border-radius:         2px;
+  --chat--font-family:                   var(--body);
+  --chat--heading--font-size:            1.4rem;
+  --chat--message--bot--background:      #fbf7eb;
+  --chat--message--bot--color:           #1a1f1a;
+  --chat--message--user--background:     #1f4424;
+  --chat--message--user--color:          #fbf7eb;
+  --chat--body--background:              #f3eedf;
+  --chat--footer--background:            #ebe2c8;
+  --chat--input--background:             #fbf7eb;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: var(--body);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--ink);
+  background-color: var(--paper);
+  /* Subtle paper grain so panels feel printed, not drawn */
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='320' height='320' viewBox='0 0 320 320'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='1.4' numOctaves='2' stitchTiles='stitch' seed='4'/><feColorMatrix values='0 0 0 0 0.10 0 0 0 0 0.13 0 0 0 0 0.10 0 0 0 0.05 0'/></filter><rect width='100%25' height='100%25' filter='url(%23g)'/></svg>");
+  background-size: 320px 320px;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+}
+
+::selection {
+  background: var(--moss);
+  color: var(--ivory);
+}
+
+a { color: var(--moss); }
+
+/* ------------------------------------------------------------------
+   HEADER — newsroom dateline
+   ------------------------------------------------------------------ */
+
+header.app-header {
+  position: relative;
+  background:
+    linear-gradient(180deg, #0e2a13 0%, #1f4424 100%);
+  color: var(--ivory);
+  padding: 6px 22px 7px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  border-bottom: 1px solid rgba(251, 247, 235, 0.16);
+  z-index: 10;
+  min-height: 0;
+}
+
+header.app-header::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: -2px;
+  height: 2px;
+  background: var(--honey);
+  z-index: -1;
+}
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding-right: 14px;
+  border-right: 1px solid rgba(251, 247, 235, 0.18);
+}
+
+.brand-mark {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: clamp(1rem, 1.5vw, 1.25rem);
+  letter-spacing: -0.01em;
+  line-height: 1;
+  font-variation-settings: "opsz" 36, "SOFT" 50;
+  color: var(--ivory);
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  margin: 0;
+}
+
+.brand-mark .seal {
+  width: 8px;
+  height: 8px;
+  background: var(--honey);
+  margin-right: 7px;
+  display: inline-block;
+  transform: rotate(45deg);
+  box-shadow: 0 0 0 1px rgba(251, 247, 235, 0.18);
+}
+
+.brand-mark .gpt {
+  color: var(--honey);
+  font-style: italic;
+  margin-left: 0.05em;
+  font-variation-settings: "opsz" 36, "SOFT" 80, "WONK" 1;
+}
+
+.brand-sub {
+  font-family: var(--display);
+  font-style: italic;
+  font-size: 0.78rem;
+  color: rgba(251, 247, 235, 0.7);
+  font-variation-settings: "opsz" 14;
+  letter-spacing: 0.005em;
+  white-space: nowrap;
+}
+
+.dateline {
+  font-family: var(--body);
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(251, 247, 235, 0.5);
+  white-space: nowrap;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dateline .sep {
+  width: 1px;
+  height: 10px;
+  background: rgba(251, 247, 235, 0.22);
+  display: inline-block;
+}
+
+.legend {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-left: auto;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--body);
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 600;
+  padding: 3px 8px;
+  border: 1px solid rgba(251, 247, 235, 0.2);
+  background: rgba(251, 247, 235, 0.05);
+  color: rgba(251, 247, 235, 0.88);
+  border-radius: 999px;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  line-height: 1.4;
+}
+
+.chip:hover {
+  background: rgba(251, 247, 235, 0.12);
+  border-color: rgba(251, 247, 235, 0.4);
+}
+
+.chip .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.menu-btn {
+  display: none;
+  background: rgba(251, 247, 235, 0.1);
+  border: 1px solid rgba(251, 247, 235, 0.3);
+  color: var(--ivory);
+  border-radius: 0;
+  padding: 5px 10px;
+  font: inherit;
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-weight: 600;
+  cursor: pointer;
+  align-self: center;
+}
+
+.menu-btn:hover {
+  background: rgba(251, 247, 235, 0.2);
+}
+
+/* ------------------------------------------------------------------
+   MAIN LAYOUT
+   ------------------------------------------------------------------ */
+
+.app-main {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  position: relative;
+}
+
+#map {
+  flex: 1;
+  min-height: 300px;
+  background: #d6d8c4;
+}
+
+.overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(14, 42, 19, 0.45);
+  backdrop-filter: blur(2px);
+  z-index: 15;
+}
+
+/* ------------------------------------------------------------------
+   SIDEBAR — almanac index
+   ------------------------------------------------------------------ */
+
+.sidebar {
+  width: 348px;
+  max-width: 44vw;
+  min-width: 288px;
+  background: var(--ivory);
+  border-right: 1px solid var(--rule);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  transition: transform 0.32s cubic-bezier(0.2, 0.8, 0.2, 1);
+  position: relative;
+}
+
+.sidebar::-webkit-scrollbar { width: 8px; }
+.sidebar::-webkit-scrollbar-track { background: var(--paper); }
+.sidebar::-webkit-scrollbar-thumb {
+  background: var(--rule);
+  border-radius: 4px;
+  border: 2px solid var(--paper);
+}
+
+.match-count {
+  padding: 22px 24px 16px;
+  font-family: var(--body);
+  font-size: 0.74rem;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  border-bottom: 1px solid var(--rule);
+  background:
+    linear-gradient(180deg, var(--paper-deep) 0%, var(--ivory) 100%);
+  position: relative;
+}
+
+.match-count::before {
+  content: "";
+  position: absolute;
+  left: 24px; right: 24px; top: 16px;
+  height: 1px;
+  background: var(--ink);
+  opacity: 0.08;
+  display: none;
+}
+
+.match-count strong {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 2.1rem;
+  color: var(--moss);
+  display: block;
+  font-variation-settings: "opsz" 60, "SOFT" 30;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.025em;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.match-count .of {
+  font-style: italic;
+  font-family: var(--display);
+  font-variation-settings: "opsz" 14;
+}
+
+.filter-section {
+  padding: 18px 24px 20px;
+  border-bottom: 1px solid var(--rule);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.filter-section:last-child {
+  border-bottom: 0;
+}
+
+.sidebar h2 {
+  margin: 0;
+  font-family: var(--body);
+  font-weight: 700;
+  font-size: 0.66rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--moss);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sidebar h2::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--rule);
+}
+
+.filter-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.filter-grid button {
+  border: 1px solid var(--rule);
+  background: var(--paper);
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.82rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition:
+    background 0.18s cubic-bezier(0.2, 0.8, 0.2, 1),
+    color 0.18s cubic-bezier(0.2, 0.8, 0.2, 1),
+    border-color 0.18s cubic-bezier(0.2, 0.8, 0.2, 1),
+    transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.filter-grid button:hover {
+  background: var(--ivory);
+  border-color: var(--moss);
+  transform: translateY(-1px);
+  box-shadow: 0 1px 0 var(--moss-deep);
+}
+
+.filter-grid button.active {
+  background: var(--moss);
+  color: var(--ivory);
+  border-color: var(--moss);
+  box-shadow: 0 2px 0 var(--moss-deep);
+}
+
+.filter-grid button.active:hover {
+  background: var(--moss-deep);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 0 var(--moss-deep);
+}
+
+.filter-note {
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin: -2px 0 4px;
+  line-height: 1.55;
+  font-style: italic;
+  font-family: var(--display);
+  font-variation-settings: "opsz" 14;
+}
+
+.search-input,
+.county-select {
+  width: 100%;
+  border: 1px solid var(--rule);
+  border-radius: 0;
+  padding: 9px 12px;
+  font: inherit;
+  font-size: 0.92rem;
+  background: var(--paper);
+  color: var(--ink);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.county-select {
+  appearance: none;
+  background:
+    var(--paper)
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none' stroke='%231f4424' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='1.5 1.5 6 6 10.5 1.5'/></svg>")
+    no-repeat right 12px center / 11px 8px;
+  padding-right: 36px;
+}
+
+.search-input::placeholder {
+  font-style: italic;
+  color: var(--muted);
+  font-family: var(--display);
+  font-variation-settings: "opsz" 14;
+}
+
+.search-input:focus,
+.county-select:focus {
+  outline: none;
+  border-color: var(--moss);
+  box-shadow: inset 0 -2px 0 var(--moss);
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+/* ------------------------------------------------------------------
+   POPUP — portrait card
+   ------------------------------------------------------------------ */
+
+.leaflet-popup-content-wrapper {
+  background: var(--ivory) !important;
+  border-radius: 2px !important;
+  border: 1px solid var(--rule);
+  box-shadow: var(--shadow-md) !important;
+  padding: 0 !important;
+}
+
+.leaflet-popup-content {
+  margin: 16px 18px !important;
+  font-family: var(--body) !important;
+  line-height: 1.5;
+}
+
+.leaflet-popup-tip {
+  background: var(--ivory) !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
+.leaflet-popup-close-button {
+  color: var(--muted) !important;
+  font-size: 22px !important;
+  padding: 8px 10px 0 0 !important;
+  transition: color 0.15s ease;
+}
+
+.leaflet-popup-close-button:hover {
+  color: var(--clay) !important;
+}
+
+.popup {
+  font-family: inherit;
+  min-width: 240px;
+  max-width: 290px;
+}
+
+.popup .kind-tag {
+  display: inline-block;
+  font-family: var(--body);
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  color: var(--ivory);
+  margin-bottom: 8px;
+  font-weight: 700;
+  border-radius: 0;
+}
+
+.popup .cert-organic {
+  display: inline-block;
+  font-family: var(--body);
+  font-size: 0.6rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  background: transparent;
+  border: 1px solid var(--moss);
+  color: var(--moss);
+  font-weight: 700;
+  margin-left: 6px;
+}
+
+.popup .cert-organic::before {
+  content: "✦ ";
+  color: var(--honey);
+}
+
+.popup h3 {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 1.32rem;
+  line-height: 1.18;
+  margin: 0 0 8px;
+  color: var(--ink);
+  font-variation-settings: "opsz" 36, "SOFT" 50;
+  letter-spacing: -0.01em;
+}
+
+.popup .meta-line {
+  font-family: var(--display);
+  font-style: italic;
+  font-size: 0.84rem;
+  color: var(--muted);
+  margin-bottom: 4px;
+  font-variation-settings: "opsz" 14;
+}
+
+.popup .meta-line:first-of-type {
+  color: var(--moss);
+}
+
+.popup .description {
+  font-size: 0.86rem;
+  line-height: 1.6;
+  margin: 12px 0 10px;
+  color: var(--ink-soft);
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  padding: 10px 0;
+}
+
+.popup .cat-badges {
+  margin: 10px 0 4px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.popup .cat-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.74rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(200, 146, 18, 0.1);
+  border: 1px solid rgba(200, 146, 18, 0.45);
+  color: var(--honey-deep);
+  font-weight: 600;
+}
+
+.popup .tag-pills {
+  margin: 8px 0 4px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 4px;
+  font-family: var(--body);
+}
+
+.popup .tag-pill {
+  font-size: 0.66rem;
+  letter-spacing: 0.02em;
+  padding: 1px 7px;
+  border-radius: 2px;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  color: var(--moss);
+  font-weight: 500;
+  text-transform: lowercase;
+}
+
+.popup .contact {
+  font-size: 0.82rem;
+  margin-top: 12px;
+  border-top: 1px solid var(--rule);
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.popup .contact a {
+  color: var(--moss);
+  text-decoration: none;
+  word-break: break-all;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.popup .contact a:hover {
+  border-color: var(--moss);
+  color: var(--moss-deep);
+}
+
+/* ------------------------------------------------------------------
+   LEAFLET CONTROLS — match the paper aesthetic
+   ------------------------------------------------------------------ */
+
+.leaflet-control-attribution {
+  background: rgba(251, 247, 235, 0.88) !important;
+  font-family: var(--body) !important;
+  font-size: 0.66rem !important;
+  padding: 2px 8px !important;
+  color: var(--muted) !important;
+  border: 1px solid var(--rule) !important;
+  border-right: 0 !important;
+  border-bottom: 0 !important;
+}
+
+.leaflet-control-attribution a {
+  color: var(--moss) !important;
+}
+
+.leaflet-bar {
+  border: 1px solid var(--rule) !important;
+  box-shadow: var(--shadow-sm) !important;
+  border-radius: 2px !important;
+}
+
+.leaflet-bar a {
+  background-color: var(--ivory) !important;
+  color: var(--ink) !important;
+  border-color: var(--rule) !important;
+  transition: background 0.15s ease;
+}
+
+.leaflet-bar a:hover {
+  background-color: var(--paper) !important;
+  color: var(--moss) !important;
+}
+
+/* ------------------------------------------------------------------
+   ANIMATIONS — initial reveal
+   ------------------------------------------------------------------ */
+
+@keyframes paperFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes underlineGrow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.app-header {
+  animation: paperFadeIn 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.sidebar {
+  animation: paperFadeIn 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) 0.08s both;
+}
+#map {
+  animation: paperFadeIn 0.65s cubic-bezier(0.2, 0.8, 0.2, 1) 0.18s both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-header,
+  .sidebar,
+  #map {
+    animation: none;
+  }
+  .filter-grid button {
+    transition: none;
+  }
+}
+
+/* ------------------------------------------------------------------
+   RESPONSIVE
+   ------------------------------------------------------------------ */
+
+@media (max-width: 720px) {
+  header.app-header {
+    padding: 12px 16px;
+    gap: 12px;
+  }
+
+  .brand {
+    padding-right: 12px;
+    border-right: 0;
+  }
+
+  .brand-mark {
+    font-size: 1.4rem;
+  }
+
+  .brand-sub,
+  .dateline,
+  .legend {
+    display: none;
+  }
+
+  .menu-btn {
+    display: block;
+    margin-left: auto;
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 88vw;
+    max-width: none;
+    z-index: 100;
+    box-shadow: 0 0 32px rgba(14, 42, 19, 0.32);
+  }
+
+  .sidebar.hidden {
+    transform: translateX(-100%);
+  }
+
+  .overlay.show {
+    display: block;
+  }
+}
