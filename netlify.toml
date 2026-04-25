@@ -1,0 +1,19 @@
+# Netlify config — for connecting the repo to Netlify and getting auto-deploys.
+# If you instead drag-and-drop the pre-built `dist/` folder at https://app.netlify.com/drop,
+# this file is ignored.
+
+[build]
+  base    = "frontend"
+  command = "npm install && npm run build"
+  publish = "frontend/out"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# SPA-style fallback isn't needed because we use trailingSlash: true and
+# every route is statically pre-rendered, but this catches deep links if
+# anyone bookmarks a non-existent path.
+[[redirects]]
+  from   = "/*"
+  to     = "/index.html"
+  status = 200

@@ -156,6 +156,39 @@ To wire up the chat widget end-to-end you also need:
 
 ---
 
+## Deploy
+
+The frontend is configured for **Next.js static export** (`output: 'export'` in `next.config.js`), so it deploys to any static host.
+
+### Option A — Netlify drag-and-drop
+
+```bash
+cd frontend
+npm install
+npm run build      # produces frontend/out/
+```
+
+Then drag `frontend/out/` onto **https://app.netlify.com/drop**.
+
+### Option B — Netlify connected to this repo (auto-deploys)
+
+`netlify.toml` at the repo root pre-configures everything:
+
+```toml
+[build]
+  base    = "frontend"
+  command = "npm install && npm run build"
+  publish = "frontend/out"
+
+[build.environment]
+  NODE_VERSION = "20"
+```
+
+In Netlify: **Add new site → Import from Git → pick this repo** → settings auto-load from `netlify.toml`.
+
+> The chat widget posts directly to the n8n webhook at `https://n8n.arleserver.cfd/webhook/codex-qdrant-chat`. The Chat Trigger node in n8n must list your Netlify domain (e.g. `https://talugpt.netlify.app`) under **Allowed Origins (CORS)**, otherwise the browser blocks chat requests.
+
+
 ## Design
 
 **"Estonian editorial almanac"** — warm oat-paper background, deep forest green primary, mustard honey accent, refined Fraunces serif paired with Manrope. Newsroom-style header with dateline. Filter chips reveal active state with a pressed-pill drop shadow. Popups are styled like portrait cards: tracked kind-tag, large serif name, italic moss-green location line, MAHE certification badge, food-category badges, Estonian keyword tag pills, hyperlinks underline on hover.
