@@ -3,7 +3,8 @@
 import { useEffect } from "react";
 import "@n8n/chat/style.css";
 
-const WEBHOOK_URL = "https://n8n.arleserver.cfd/webhook/codex-qdrant-chat";
+const WEBHOOK_URL =
+  "https://n8n.arleserver.cfd/webhook/f2d5f715-a71a-4188-8abb-d27f688a02f8/chat";
 
 export default function ChatWidget() {
   useEffect(() => {
