@@ -5,7 +5,8 @@
 //   <script src="ask.js"></script>
 //   <script>askTaluGPT("Kus saab Viimsis toorpiima?")</script>
 
-const WEBHOOK_URL = "https://n8n.arleserver.cfd/webhook/codex-qdrant-chat";
+const WEBHOOK_URL =
+  "https://n8n.arleserver.cfd/webhook/f2d5f715-a71a-4188-8abb-d27f688a02f8/chat";
 
 async function askTaluGPT(userMessage) {
   const out = document.getElementById("chat-output");
