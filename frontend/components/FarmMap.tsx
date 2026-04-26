@@ -293,14 +293,28 @@ export default function FarmMap() {
       });
       clusterRef.current = cluster;
 
+      // Touch devices need fatter markers — a 5px-radius dot is below
+      // the comfortable tap target on phones (10px wide). On mobile we
+      // use 8px (16px wide) so taps land more reliably.
+      const isTouch =
+        typeof window !== "undefined" &&
+        (window.matchMedia("(pointer: coarse)").matches ||
+          "ontouchstart" in window);
+      const baseRadius = isTouch ? 8 : 6;
+      const baseWeight = isTouch ? 1.5 : 1;
+
       for (const farm of dataset.records) {
         const marker = L.circleMarker([farm.lat, farm.lng], {
-          radius: 5,
+          radius: baseRadius,
           color: KIND_COLORS[farm.kind],
           fillColor: KIND_COLORS[farm.kind],
-          fillOpacity: 0.75,
-          weight: 1,
-          opacity: 0.9,
+          fillOpacity: 0.78,
+          weight: baseWeight,
+          opacity: 0.95,
+          // Don't bubble marker clicks to the map (which would close the
+          // popup we're about to open and confuse touch handlers).
+          bubblingMouseEvents: false,
+          interactive: true,
         });
 
         marker.on("click", () => {
@@ -308,6 +322,8 @@ export default function FarmMap() {
             marker.bindPopup(buildPopupHtml(farm), {
               maxWidth: 300,
               autoPan: true,
+              autoPanPadding: [40, 40],
+              closeButton: true,
             });
           }
           marker.openPopup();
@@ -353,14 +369,21 @@ export default function FarmMap() {
     const toAdd: CircleMarker[] = [];
     const toRemove: CircleMarker[] = [];
 
+    const isTouch =
+      typeof window !== "undefined" &&
+      (window.matchMedia("(pointer: coarse)").matches ||
+        "ontouchstart" in window);
+    const baseRadius = isTouch ? 8 : 6;
+    const activeRadius = isTouch ? 11 : 9;
+
     markersRef.current.forEach((marker, id) => {
       const isVisible = visible.has(id);
       const inCluster = cluster.hasLayer(marker);
       if (isVisible) {
         if (!inCluster) toAdd.push(marker);
         marker.setStyle({
-          radius: filterActive ? 7 : 5,
-          fillOpacity: filterActive ? 0.95 : 0.75,
+          radius: filterActive ? activeRadius : baseRadius,
+          fillOpacity: filterActive ? 0.95 : 0.78,
         });
         const ll = marker.getLatLng();
         visibleLatLngs.push([ll.lat, ll.lng]);
@@ -534,78 +557,7 @@ export default function FarmMap() {
           />
         )}
 
-        <div id="map" ref={mapEl}>
-          <div className="compass-rose" aria-hidden>
-            <svg viewBox="0 0 100 100">
-              <circle
-                cx="50"
-                cy="50"
-                r="44"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="0.6"
-                opacity="0.45"
-              />
-              <circle
-                cx="50"
-                cy="50"
-                r="35"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="0.35"
-                opacity="0.3"
-              />
-              <g
-                fontFamily="var(--display)"
-                fontSize="5.6"
-                fontStyle="italic"
-                fontWeight="500"
-                fill="currentColor"
-                textAnchor="middle"
-                opacity="0.82"
-                letterSpacing="0.06em"
-              >
-                <text x="50" y="9.5">
-                  põhi
-                </text>
-                <text x="50" y="96.5">
-                  lõuna
-                </text>
-                <text x="91.5" y="52.5">
-                  ida
-                </text>
-                <text x="8.5" y="52.5">
-                  lääne
-                </text>
-              </g>
-              <polygon
-                points="50,18 53,50 50,82 47,50"
-                fill="currentColor"
-                opacity="0.92"
-              />
-              <polygon
-                points="18,50 50,53 82,50 50,47"
-                fill="currentColor"
-                opacity="0.55"
-              />
-              <polygon
-                points="50,30 51.5,50 50,70 48.5,50"
-                fill="#c89212"
-                opacity="0.85"
-              />
-              <circle cx="50" cy="50" r="2.2" fill="currentColor" />
-              <circle
-                cx="50"
-                cy="50"
-                r="3.4"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="0.5"
-                opacity="0.5"
-              />
-            </svg>
-          </div>
-        </div>
+        <div id="map" ref={mapEl} />
       </main>
     </>
   );
