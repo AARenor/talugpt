@@ -1418,9 +1418,9 @@ header.app-header::after {
     top: 0;
     left: 0;
     bottom: 0;
-    /* 86vw caps at 360px so the map stays visible to the right; gives the
-       drawer feel instead of a full-screen takeover */
-    width: min(86vw, 360px);
+    /* Compact drawer — narrower than 86vw so the map gets more breathing
+       room; cap at 320px so it never feels oversized even on tablets */
+    width: min(76vw, 320px);
     max-width: none;
     z-index: 100;
     border-right: 1px solid var(--rule-strong);
@@ -1435,51 +1435,111 @@ header.app-header::after {
     transform: translateX(-101%);
   }
 
-  /* The × close button is mobile-only */
+  /* The × close button is mobile-only — slightly smaller to match the tighter drawer */
   .sidebar-close {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    width: 32px;
+    height: 32px;
+    top: 8px;
+    right: 8px;
+    font-size: 20px;
   }
 
   .sidebar-eyebrow {
     /* Push the eyebrow text right so it doesn't run under the × button */
-    padding-right: 56px;
+    padding-right: 48px;
+    padding-top: 16px;
+    font-size: 0.66rem;
+    letter-spacing: 0.24em;
   }
 
   .overlay.show {
     display: block;
   }
 
-  /* Touch-friendly filter chips */
-  .filter-grid button {
-    padding: 9px 14px;
-    font-size: 0.9rem;
-    min-height: 40px;
+  /* Touch-friendly filter chips, but tighter so more fit per row */
+  .filter-grid {
+    gap: 5px;
   }
 
-  /* iOS auto-zooms inputs <16px on focus — bump font + tap area */
+  .filter-grid button {
+    padding: 7px 11px;
+    font-size: 0.82rem;
+    min-height: 36px;
+    gap: 5px;
+  }
+
+  /* iOS auto-zooms inputs <16px on focus — keep 16px but reduce padding */
   .search-input,
   .county-select {
-    padding: 12px 14px;
+    padding: 10px 12px;
     font-size: 16px;
-    min-height: 44px;
+    min-height: 42px;
   }
 
   .county-select {
-    background-position: right 14px center;
+    background-position: right 12px center;
   }
 
+  /* Match-count — much more compact on phone (the giant serif numeral
+     reads as a desktop frontispiece; on a 320px drawer it just eats space) */
   .match-count {
-    padding: 18px 20px 14px;
+    padding: 12px 16px 10px;
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+  }
+
+  .match-count .match-eyebrow {
+    margin-bottom: 4px;
+    font-size: 0.66rem;
   }
 
   .match-count strong {
-    font-size: 1.85rem;
+    font-size: 2rem;
+    margin-bottom: 0;
+  }
+
+  .match-count .of {
+    font-size: 0.78rem;
+  }
+
+  .match-count .match-flourish {
+    margin-top: 8px;
+    height: 6px;
   }
 
   .filter-section {
-    padding: 16px 20px 18px;
+    padding: 12px 16px 14px;
+    gap: 8px;
+  }
+
+  .sidebar h2 {
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    gap: 8px;
+  }
+
+  .filter-note {
+    font-size: 0.74rem;
+    margin: -4px 0 2px;
+  }
+
+  /* Compact colophon — drop the heavier flourish text on phones */
+  .colophon {
+    padding: 14px 16px 18px;
+    font-size: 0.7rem;
+    line-height: 1.5;
+  }
+
+  .colophon-mark {
+    font-size: 0.85rem;
+    margin-bottom: 6px;
+  }
+
+  .colophon-motto {
+    font-size: 0.74rem;
   }
 
   /* Drop the heavy SVG grain on phones — minor perf + cleaner look */
@@ -1538,5 +1598,28 @@ header.app-header::after {
   .menu-btn {
     padding: 8px 10px;
     letter-spacing: 0.12em;
+  }
+
+  /* On 320–380px screens, even 76vw is a lot — tighten further */
+  .sidebar {
+    width: min(82vw, 290px);
+  }
+
+  .match-count strong {
+    font-size: 1.75rem;
+  }
+
+  .filter-grid button {
+    padding: 6px 10px;
+    font-size: 0.78rem;
+    min-height: 34px;
+  }
+
+  .filter-section {
+    padding: 10px 14px 12px;
+  }
+
+  .match-count {
+    padding: 10px 14px 8px;
   }
 }
