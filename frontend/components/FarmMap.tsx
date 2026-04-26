@@ -153,27 +153,35 @@ export default function FarmMap() {
   const [error, setError] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(() => {
     // Component is loaded with ssr: false, so window is always defined here.
-    // On phones/tablets, start with the map visible — user opens filters via
-    // the Filtrid button.
+    // matchMedia is more reliable than innerWidth at first paint — it
+    // already accounts for the viewport meta tag, while innerWidth on
+    // some Android browsers briefly reports the desktop default before
+    // the viewport snaps. On phones/tablets, start CLOSED so the user
+    // sees the map; they open filters via the Filtrid button.
     if (typeof window === "undefined") return true;
-    return window.innerWidth > 768;
+    return !window.matchMedia("(max-width: 768px)").matches;
   });
 
-  // Auto-close the drawer on rotate / resize across the mobile breakpoint, and
-  // lock body scroll while the drawer is open on mobile.
+  // Track the mobile breakpoint via matchMedia. When the user rotates
+  // the device, the sidebar auto-restores to its sensible default for
+  // the new orientation.
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const onResize = () => {
-      const isDesktop = window.innerWidth > 768;
-      setSidebarOpen((prev) => (isDesktop ? true : prev));
+    const mq = window.matchMedia("(max-width: 768px)");
+    const apply = (mobile: boolean) => {
+      setSidebarOpen((prev) => (mobile ? false : true));
     };
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
+    // Run once on mount in case matchMedia was wrong at the useState
+    // initializer (e.g. very early Android viewport snap)
+    if (mq.matches) setSidebarOpen(false);
+    const onChange = (e: MediaQueryListEvent) => apply(e.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
   }, []);
 
   useEffect(() => {
     if (typeof document === "undefined") return;
-    const isMobile = window.innerWidth <= 768;
+    const isMobile = window.matchMedia("(max-width: 768px)").matches;
     if (isMobile && sidebarOpen) {
       document.body.style.overflow = "hidden";
     } else {
@@ -448,12 +456,21 @@ export default function FarmMap() {
             <button
               className="sidebar-close"
               onClick={() => setSidebarOpen(false)}
+              onTouchEnd={(e) => {
+                // iOS Safari sometimes does not fire onClick reliably
+                // when a parent has been transformed; touchend is the
+                // belt-and-braces backup.
+                e.preventDefault();
+                setSidebarOpen(false);
+              }}
               aria-label="Sulge filtrid"
               type="button"
             >
               <span aria-hidden>×</span>
             </button>
           </div>
+
+          <div className="sidebar-scroll">
 
           {!dataset && !error && (
             <div className="match-count">
@@ -489,6 +506,8 @@ export default function FarmMap() {
             </p>
             <p>Aprill 2026 · Tallinn</p>
           </footer>
+
+          </div>
         </aside>
 
         <div
