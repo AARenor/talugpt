@@ -151,37 +151,43 @@ export default function FarmMap() {
 
   const [dataset, setDataset] = useState<FarmDataset | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState<boolean>(() => {
+    // Component loaded with ssr: false, so window is defined here.
+    // matchMedia respects the viewport meta tag immediately — innerWidth
+    // can briefly report 980 on some Android browsers before the viewport
+    // snaps, so prefer matchMedia.
+    if (typeof window === "undefined") return false;
+    return window.matchMedia("(max-width: 768px)").matches;
+  });
+
+  // On mobile the sidebar is mounted only while open (so it literally
+  // doesn't exist in the DOM until the user taps Filtrid). On desktop
+  // it's always mounted as part of the layout.
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(() => {
-    // Component is loaded with ssr: false, so window is always defined here.
-    // matchMedia is more reliable than innerWidth at first paint — it
-    // already accounts for the viewport meta tag, while innerWidth on
-    // some Android browsers briefly reports the desktop default before
-    // the viewport snaps. On phones/tablets, start CLOSED so the user
-    // sees the map; they open filters via the Filtrid button.
     if (typeof window === "undefined") return true;
     return !window.matchMedia("(max-width: 768px)").matches;
   });
 
-  // Track the mobile breakpoint via matchMedia. When the user rotates
-  // the device, the sidebar auto-restores to its sensible default for
-  // the new orientation.
+  // Track the breakpoint via matchMedia change events — fires correctly
+  // on rotation and zoom, no innerWidth jitter.
   useEffect(() => {
     if (typeof window === "undefined") return;
     const mq = window.matchMedia("(max-width: 768px)");
-    const apply = (mobile: boolean) => {
-      setSidebarOpen((prev) => (mobile ? false : true));
-    };
-    // Run once on mount in case matchMedia was wrong at the useState
-    // initializer (e.g. very early Android viewport snap)
+    setIsMobile(mq.matches);
     if (mq.matches) setSidebarOpen(false);
-    const onChange = (e: MediaQueryListEvent) => apply(e.matches);
+    else setSidebarOpen(true);
+    const onChange = (e: MediaQueryListEvent) => {
+      setIsMobile(e.matches);
+      setSidebarOpen(!e.matches);
+    };
     mq.addEventListener("change", onChange);
     return () => mq.removeEventListener("change", onChange);
   }, []);
 
+  // Lock body scroll while the drawer is open on mobile so the map
+  // beneath doesn't pan under the user's finger.
   useEffect(() => {
     if (typeof document === "undefined") return;
-    const isMobile = window.matchMedia("(max-width: 768px)").matches;
     if (isMobile && sidebarOpen) {
       document.body.style.overflow = "hidden";
     } else {
@@ -190,7 +196,12 @@ export default function FarmMap() {
     return () => {
       document.body.style.overflow = "";
     };
-  }, [sidebarOpen]);
+  }, [isMobile, sidebarOpen]);
+
+  // Only render sidebar + overlay when:
+  //   - desktop (always there as part of the layout), OR
+  //   - mobile AND user has tapped Filtrid (sidebarOpen=true)
+  const renderSidebar = !isMobile || sidebarOpen;
   const [filters, setFilters] = useState<FilterState>({
     kinds: new Set(),
     county: null,
@@ -442,6 +453,7 @@ export default function FarmMap() {
       </header>
 
       <main className="app-main">
+        {renderSidebar && (
         <aside className={`sidebar${sidebarOpen ? "" : " hidden"}`}>
           <div className="sidebar-header">
             <div className="sidebar-eyebrow">
@@ -509,11 +521,18 @@ export default function FarmMap() {
 
           </div>
         </aside>
+        )}
 
-        <div
-          className={`overlay${sidebarOpen ? " show" : ""}`}
-          onClick={() => setSidebarOpen(false)}
-        />
+        {isMobile && sidebarOpen && (
+          <div
+            className="overlay show"
+            onClick={() => setSidebarOpen(false)}
+            onTouchEnd={(e) => {
+              e.preventDefault();
+              setSidebarOpen(false);
+            }}
+          />
+        )}
 
         <div id="map" ref={mapEl}>
           <div className="compass-rose" aria-hidden>
