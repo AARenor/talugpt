@@ -417,15 +417,34 @@ header.app-header::after {
   box-shadow: inset -8px 0 24px -16px rgba(14, 42, 19, 0.18);
 }
 
+/* Sidebar header — flex row with the eyebrow and the × close button.
+   Pinned to the top of the drawer (sticky) so when filters scroll,
+   the × always stays reachable. On desktop the × is hidden, so the
+   header is just the eyebrow flowing normally. */
+.sidebar-header {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--ivory);
+  display: flex;
+  align-items: center;
+}
+
+.sidebar-header .sidebar-eyebrow {
+  flex: 1;
+  /* Override the absolute eyebrow padding to remove its self-padding
+     since we now control spacing at the header level */
+  padding-right: 8px;
+}
+
 /* Close (×) button — only shown on mobile (see media queries below) */
 .sidebar-close {
   display: none;
-  position: absolute;
-  top: 10px;
-  right: 12px;
   width: 36px;
   height: 36px;
-  background: transparent;
+  flex-shrink: 0;
+  margin: 8px 12px 8px 0;
+  background: var(--ivory);
   border: 1px solid var(--rule);
   border-radius: 50%;
   color: var(--moss);
@@ -434,11 +453,11 @@ header.app-header::after {
   cursor: pointer;
   font-family: var(--display);
   font-weight: 400;
-  z-index: 2;
   transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
 }
 
-.sidebar-close:hover {
+.sidebar-close:hover,
+.sidebar-close:active {
   background: var(--paper);
   border-color: var(--moss);
   transform: scale(1.05);
@@ -1442,14 +1461,11 @@ header.app-header::after {
     justify-content: center;
     width: 32px;
     height: 32px;
-    top: 8px;
-    right: 8px;
+    margin: 6px 10px 6px 0;
     font-size: 20px;
   }
 
   .sidebar-eyebrow {
-    /* Push the eyebrow text right so it doesn't run under the × button */
-    padding-right: 48px;
     padding-top: 16px;
     font-size: 0.66rem;
     letter-spacing: 0.24em;

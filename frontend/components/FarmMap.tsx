@@ -435,22 +435,24 @@ export default function FarmMap() {
 
       <main className="app-main">
         <aside className={`sidebar${sidebarOpen ? "" : " hidden"}`}>
-          <button
-            className="sidebar-close"
-            onClick={() => setSidebarOpen(false)}
-            aria-label="Sulge filtrid"
-            type="button"
-          >
-            <span aria-hidden>×</span>
-          </button>
-          <div className="sidebar-eyebrow">
-            <span className="mark" aria-hidden>
-              ✦
-            </span>
-            Filtrid
-            <span className="mark" aria-hidden>
-              ✦
-            </span>
+          <div className="sidebar-header">
+            <div className="sidebar-eyebrow">
+              <span className="mark" aria-hidden>
+                ✦
+              </span>
+              Filtrid
+              <span className="mark" aria-hidden>
+                ✦
+              </span>
+            </div>
+            <button
+              className="sidebar-close"
+              onClick={() => setSidebarOpen(false)}
+              aria-label="Sulge filtrid"
+              type="button"
+            >
+              <span aria-hidden>×</span>
+            </button>
           </div>
 
           {!dataset && !error && (
