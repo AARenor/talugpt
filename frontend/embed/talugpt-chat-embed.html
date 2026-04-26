@@ -1,0 +1,161 @@
+<!doctype html>
+<!--
+  TaluGPT chat — drop-in embed snippet
+  ====================================
+
+  Paste the <link> + <script type="module"> block below into ANY website's
+  <head> (or just before </body>) and the floating green TaluGPT chat
+  button will appear in the bottom-right corner of every page.
+
+  No build step, no React, no npm install — it loads the official
+  @n8n/chat widget from jsDelivr at runtime.
+
+  Requirements on the n8n side:
+  - Chat Trigger (or Webhook) node at the URL below must be active
+  - Allowed Origins (CORS) on the trigger must include your site's origin
+    e.g. https://yoursite.com — otherwise the browser blocks the request
+
+  This file itself is just a demo wrapper so you can preview the widget
+  locally before pasting the snippet into your real site.
+-->
+<html lang="et">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TaluGPT — Chat Embed Demo</title>
+    <style>
+      :root {
+        color-scheme: light;
+      }
+      body {
+        margin: 0;
+        font-family:
+          "Alegreya Sans", -apple-system, BlinkMacSystemFont, "Segoe UI",
+          Helvetica, Arial, sans-serif;
+        color: #1a1f1a;
+        background: #f3eedf;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 32px;
+      }
+      main {
+        max-width: 640px;
+      }
+      h1 {
+        font-family: "Fraunces", "Hoefler Text", Georgia, serif;
+        font-weight: 600;
+        font-size: clamp(2rem, 5vw, 3rem);
+        line-height: 1.05;
+        margin: 0 0 16px;
+        letter-spacing: -0.02em;
+      }
+      h1 em {
+        color: #c89212;
+        font-style: italic;
+      }
+      p {
+        max-width: 56ch;
+        line-height: 1.6;
+      }
+      code,
+      pre {
+        font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo,
+          Consolas, monospace;
+      }
+      pre {
+        background: #1a1f1a;
+        color: #ebe2c8;
+        padding: 18px 20px;
+        border-radius: 4px;
+        overflow-x: auto;
+        font-size: 13px;
+        line-height: 1.55;
+      }
+      pre code {
+        background: transparent;
+        padding: 0;
+      }
+      .hint {
+        font-style: italic;
+        color: #6f6a5e;
+        font-size: 14px;
+        margin-top: 24px;
+      }
+    </style>
+
+    <!-- ┌─────────────────────────────────────────────────────────────┐ -->
+    <!-- │  TaluGPT chat embed — paste from here…                      │ -->
+    <!-- └─────────────────────────────────────────────────────────────┘ -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css"
+      rel="stylesheet"
+    />
+    <script type="module">
+      import { createChat } from "https://cdn.jsdelivr.net/npm/@n8n/chat/dist/chat.bundle.es.js";
+
+      createChat({
+        webhookUrl:
+          "https://n8n.arleserver.cfd/webhook/codex-qdrant-chat",
+        mode: "window",
+        showWelcomeScreen: false,
+        defaultLanguage: "et",
+        initialMessages: [
+          "Tere! 👋",
+          'Mina olen TaluGPT. Küsi Eesti talude, turgude, tootjate ja kohaliku toidu kohta — näiteks: "Kus saab Viimsis toorpiima?"',
+        ],
+        i18n: {
+          et: {
+            title: "TaluGPT 🇪🇪",
+            subtitle:
+              "Küsi talude, turgude ja kohaliku toidu kohta.",
+            footer: "",
+            getStarted: "Uus vestlus",
+            inputPlaceholder: "Sinu küsimus…",
+            closeButtonTooltip: "Sulge vestlus",
+          },
+        },
+      });
+    </script>
+    <!-- ┌─────────────────────────────────────────────────────────────┐ -->
+    <!-- │  …to here. The floating green button appears bottom-right.  │ -->
+    <!-- └─────────────────────────────────────────────────────────────┘ -->
+  </head>
+
+  <body>
+    <main>
+      <h1>
+        Talu<em>GPT</em> chat embed
+      </h1>
+      <p>
+        This page is a preview of the drop-in chat embed. Open the page
+        and look for the green chat button in the bottom-right corner —
+        that's the TaluGPT assistant, talking to the same n8n + Qdrant +
+        Claude Opus&nbsp;4.7 backend that powers the main site.
+      </p>
+      <p>
+        To put the same widget on <em>your</em> site, copy these two tags
+        into your <code>&lt;head&gt;</code>:
+      </p>
+      <pre><code>&lt;link
+  href="https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css"
+  rel="stylesheet" /&gt;
+&lt;script type="module"&gt;
+  import { createChat }
+    from "https://cdn.jsdelivr.net/npm/@n8n/chat/dist/chat.bundle.es.js";
+  createChat({
+    webhookUrl:
+      "https://n8n.arleserver.cfd/webhook/codex-qdrant-chat",
+    defaultLanguage: "et",
+    initialMessages: ["Tere! 👋"],
+  });
+&lt;/script&gt;</code></pre>
+      <p class="hint">
+        ⚠ The Chat Trigger / Webhook node in n8n must list your site's
+        origin under <strong>Allowed Origins (CORS)</strong>, otherwise
+        the browser blocks the request.
+      </p>
+    </main>
+  </body>
+</html>
