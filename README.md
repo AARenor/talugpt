@@ -10,29 +10,46 @@ Ask in Estonian or English — *"Kus saab Viimsis toorpiima?"* or *"Where can I 
 
 ## What's in here
 
-This repo contains the **web map** (Next.js 14 frontend) and the **unified Estonian farm dataset** that powers it. The dataset is consumed at build-time, sliced into a lighter payload, and served as `public/farms.json`. The conversational AI lives in an embedded chat widget that talks to an n8n workflow → Qdrant → Claude Opus 4.7.
+This repo contains:
+
+- The **web map** (Next.js 14 frontend) — Leaflet with marker clustering over 2,130 farms/markets/producers/shops/events.
+- The **unified Estonian farm dataset** that powers it (built at deploy time from the source records).
+- The **n8n workflow** that runs the conversational chat — Google Drive ingestion + Qdrant retrieval + Claude Opus 4.7.
+- An **optional FastAPI backend** for self-hosted ingestion + chat (when you don't want to depend on n8n).
 
 ```
 talugpt/
 ├── frontend/                       Next.js 14 web map
 │   ├── app/                          page, layout, globals.css
 │   ├── components/
-│   │   ├── FarmMap.tsx               Leaflet map + popup builder
-│   │   ├── FilterPanel.tsx           Sidebar filters
-│   │   └── ChatWidget.tsx            n8n chat embed
+│   │   ├── FarmMap.tsx               Leaflet map + marker clustering + popup builder
+│   │   ├── FilterPanel.tsx           Sidebar filters (kind, county, food category, certifications)
+│   │   └── ChatWidget.tsx            @n8n/chat embed
+│   ├── embed/                        Standalone JS chat-widget for embedding on third-party sites
 │   ├── lib/
 │   │   ├── types.ts                  Farm, FarmDataset, FilterState
 │   │   ├── products.ts               Food category taxonomy
 │   │   └── farmFilter.ts             Filter logic
 │   ├── scripts/
 │   │   └── copy-data.mjs             Build-time slim of Full farm data.json
-│   └── public/farms.json             Generated, served to the browser
+│   └── public/farms.json             Generated at build, served to the browser
+│
+├── backend/                         Optional FastAPI service
+│   ├── main.py                        /health · /ingest/file · /ingest/raw · /chat
+│   ├── parsers.py                     PDF · Docx · Xlsx · plain text → chunks
+│   ├── embedder.py                    sentence-transformers (local) or Gemini
+│   ├── qdrant_store.py                Upsert + delete-by-file_id (dedupe on update)
+│   ├── claude_client.py               Anthropic SDK wrapper (Opus 4.7 + prompt caching)
+│   └── Dockerfile
 │
 ├── data_pipeline/
 │   └── Full farm data.json           2,130 records · the unified dataset
 │
+├── talugpt rag.json                 The chat workflow exported from n8n
+│
 └── docs/
-    └── screenshot.png
+    ├── screenshot.png
+    └── screenshot-popup.png
 ```
 
 ---
@@ -118,7 +135,37 @@ const WEBHOOK_URL = "https://n8n.arleserver.cfd/webhook/codex-qdrant-chat";
 
 ### The n8n workflow
 
-The full backend workflow — Google Drive folder trigger → embed (Gemini) → Qdrant insert → chat trigger → Qdrant retrieval tool → **Anthropic Claude** → Redis chat memory — is exported as **[`talugpt rag.json`](talugpt%20rag.json)** (18 nodes). Import it into your own n8n instance via *Workflows → Import from file*, then re-attach your own credentials (Google Drive, Gemini, Qdrant, Anthropic, Redis) — only credential *IDs* are exported, never the secrets.
+The full backend workflow — exported as **[`talugpt rag.json`](talugpt%20rag.json)** (17 nodes) — has two halves:
+
+**Ingestion (file → vectors).**
+Google Drive folder triggers (file created + file updated) → Drive download → **delete-old-vectors by `file_id`** (dedupes on re-upload) → Default Data Loader (auto-detects PDF / Docx / CSV / TXT / EPUB) with a 1000/200 recursive chunker → Gemini `gemini-embedding-001` → Qdrant insert → 3 s pacing wait. Retry-on-fail is set everywhere (5 tries, exponential-ish wait) for the well-known Gemini 429s.
+
+**Chat (question → answer).**
+Webhook → Set fields → AI Agent (Claude Opus 4.7) ← Qdrant retrieval tool (same `codex_drive_rag` collection, same Gemini embedding model so the vector spaces match) ← Redis session memory → respond-to-webhook.
+
+Import via *Workflows → Import from file*, then re-attach your own credentials (Google Drive, Gemini, Qdrant, Anthropic, Redis) — only credential *IDs* are exported, never the secrets.
+
+---
+
+## Backend (optional FastAPI service)
+
+If you don't want to run n8n, the `backend/` folder is a self-contained FastAPI app that does the same ingestion + chat work in Python.
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /health` | Readiness probe — verifies Qdrant connectivity |
+| `POST /ingest/file` | Multipart upload — parses PDF / Docx / Xlsx / TXT, chunks, embeds, upserts to Qdrant. Deletes existing chunks for the same file id before inserting (idempotent) |
+| `POST /ingest/raw` | Same flow for raw text (no file parsing) |
+| `POST /chat` | RAG round-trip — embed query, top-k Qdrant search, Claude Opus 4.7 with prompt caching, returns answer + cited record IDs |
+
+```bash
+cd backend
+pip install -r requirements.txt
+cp ../.env.example .env             # ANTHROPIC_API_KEY, QDRANT_URL, QDRANT_COLLECTION
+uvicorn backend.main:app --reload --port 8000
+```
+
+The backend ships with a Dockerfile and uses the same Qdrant collection (`codex_drive_rag`) as the n8n workflow — so you can mix and match: ingest with FastAPI, chat with n8n, or vice versa.
 
 ---
 

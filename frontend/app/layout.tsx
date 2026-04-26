@@ -1,5 +1,5 @@
-import type { Metadata } from "next";
-import { Fraunces, Manrope } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { Fraunces, Alegreya_Sans } from "next/font/google";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -10,8 +10,10 @@ const fraunces = Fraunces({
   variable: "--font-display",
 });
 
-const manrope = Manrope({
+const alegreyaSans = Alegreya_Sans({
   subsets: ["latin", "latin-ext"],
+  weight: ["400", "500", "700", "800"],
+  style: ["normal", "italic"],
   display: "swap",
   variable: "--font-body",
 });
@@ -22,13 +24,21 @@ export const metadata: Metadata = {
     "Eesti talud, turud, tootjad, poed ja toidusündmused — andmed PTA mahepõllumajanduse registrist ja avalikest allikatest.",
 };
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  viewportFit: "cover",
+  themeColor: "#1f4424",
+};
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <html lang="et" className={`${fraunces.variable} ${manrope.variable}`}>
+    <html lang="et" className={`${fraunces.variable} ${alegreyaSans.variable}`}>
       <body>{children}</body>
     </html>
   );

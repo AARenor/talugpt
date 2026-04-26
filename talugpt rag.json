@@ -34,6 +34,8 @@
     },
     {
       "parameters": {
+        "textSplittingMode": "simple",
+        "dataType": "json",
         "jsonMode": "expressionData",
         "jsonData": "={{ $json.embeddingText }}",
         "options": {
@@ -248,7 +250,7 @@
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ {\"answer\": $json.output || $json.text || $json.response || \"\"} }}",
+        "responseBody": "={{ $json }}",
         "options": {}
       },
       "id": "066c4377-515b-4feb-befc-a4fbfe75445c",
@@ -335,6 +337,7 @@
     {
       "parameters": {
         "fieldToSplitOut": "parsed.records",
+        "include": "noOtherFields",
         "options": {}
       },
       "id": "b7ba93dd-b98e-41cf-a6cd-77f4f04fdf20",
@@ -468,6 +471,63 @@
     },
     {
       "parameters": {
+        "requestMethod": "POST",
+        "url": "={{ 'http://backend:8000/ingest/file?source=google-drive&external_id=' + encodeURIComponent($('TaluGPT Folder Trigger').item.json.id) + '&title=' + encodeURIComponent($('TaluGPT Folder Trigger').item.json.name || 'document') }}",
+        "jsonParameters": true,
+        "options": {
+          "bodyContentType": "multipart-form-data",
+          "timeout": 300000
+        },
+        "sendBinaryData": true,
+        "binaryPropertyName": "file:data"
+      },
+      "id": "8a14fb2c-8e55-4975-a1c6-c7f8570c8a31",
+      "name": "Send File To Backend",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        4880,
+        816
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://backend:8000/chat",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"query\": $json.chatInput || \"\", \"top_k\": 6 } }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "0d0ebdc7-d230-480e-a2bc-f81078732bbd",
+      "name": "Ask Backend",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        5120,
+        1104
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {
+          "reset": false
+        }
+      },
+      "id": "b85fdc89-1f45-4e0d-b066-0e2f17ce8a4a",
+      "name": "Loop Over Items",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        5968,
+        816
+      ]
+    },
+    {
+      "parameters": {
         "model": {
           "__rl": true,
           "value": "claude-opus-4-7",
@@ -509,7 +569,7 @@
       "main": [
         [
           {
-            "node": "Extract From File",
+            "node": "Send File To Backend",
             "type": "main",
             "index": 0
           }
@@ -553,7 +613,18 @@
       "main": [
         [
           {
-            "node": "RAG AI Agent",
+            "node": "Ask Backend",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ask Backend": {
+      "main": [
+        [
+          {
+            "node": "Chat Response",
             "type": "main",
             "index": 0
           }
@@ -652,7 +723,29 @@
       "main": [
         [
           {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
             "node": "Qdrant Insert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Qdrant Insert": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
             "type": "main",
             "index": 0
           }

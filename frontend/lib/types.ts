@@ -54,11 +54,11 @@ export const KIND_LABELS: Record<FarmKind, string> = {
 };
 
 export const KIND_COLORS: Record<FarmKind, string> = {
-  farm: "#2e7d32",
-  event: "#c62828",
-  market: "#ef6c00",
-  producer: "#6a1b9a",
-  shop: "#1565c0",
+  farm: "#1f4424",
+  event: "#b4543a",
+  market: "#c89212",
+  producer: "#6b3a6b",
+  shop: "#2a4a66",
 };
 
 export const ALL_KINDS: FarmKind[] = ["farm", "event", "market", "producer", "shop"];
