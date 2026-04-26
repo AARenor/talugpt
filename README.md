@@ -1,162 +1,147 @@
 # TaluGPT 🇪🇪
 
 **Natural-language local-food discovery for Estonia.**
+Ask in Estonian or English — *"Kus saab Viimsis toorpiima?"* — and get a Claude-powered answer alongside a Leaflet map highlighting the relevant farms, markets, producers, shops, and food events.
 
-Ask in Estonian or English — *"Kus saab Viimsis toorpiima?"* or *"Where can I buy organic honey near Tartu?"* — and get a Claude-powered answer alongside a Leaflet map highlighting the relevant farms, markets, producers, shops, and food events.
+> **Live demo:** **[talugpt.vercel.app](https://talugpt.vercel.app)**
+> `main` is the deploy branch — every merge to `main` auto-deploys to Vercel within ~30 s.
 
 ![TaluGPT desktop](docs/screenshot.png)
 
 ---
 
-## What's in here
+## Run it locally
 
-This repo contains:
-
-- The **web map** (Next.js 14 frontend) — Leaflet with marker clustering over 2,130 farms/markets/producers/shops/events.
-- The **unified Estonian farm dataset** that powers it (built at deploy time from the source records).
-- The **n8n workflow** that runs the conversational chat — Google Drive ingestion + Qdrant retrieval + Claude Opus 4.7.
-- An **optional FastAPI backend** for self-hosted ingestion + chat (when you don't want to depend on n8n).
-
+```bash
+git clone https://github.com/AARenor/talugpt.git
+cd talugpt/frontend
+npm install
+npm run dev          # → http://localhost:3000
 ```
-talugpt/
-├── frontend/                       Next.js 14 web map
-│   ├── app/                          page, layout, globals.css
-│   ├── components/
-│   │   ├── FarmMap.tsx               Leaflet map + marker clustering + popup builder
-│   │   ├── FilterPanel.tsx           Sidebar filters (kind, county, food category, certifications)
-│   │   └── ChatWidget.tsx            @n8n/chat embed
-│   ├── embed/                        Standalone JS chat-widget for embedding on third-party sites
-│   ├── lib/
-│   │   ├── types.ts                  Farm, FarmDataset, FilterState
-│   │   ├── products.ts               Food category taxonomy
-│   │   └── farmFilter.ts             Filter logic
-│   ├── scripts/
-│   │   └── copy-data.mjs             Build-time slim of Full farm data.json
-│   └── public/farms.json             Generated at build, served to the browser
-│
-├── backend/                         Optional FastAPI service
-│   ├── main.py                        /health · /ingest/file · /ingest/raw · /chat
-│   ├── parsers.py                     PDF · Docx · Xlsx · plain text → chunks
-│   ├── embedder.py                    sentence-transformers (local) or Gemini
-│   ├── qdrant_store.py                Upsert + delete-by-file_id (dedupe on update)
-│   ├── claude_client.py               Anthropic SDK wrapper (Opus 4.7 + prompt caching)
-│   └── Dockerfile
-│
-├── data_pipeline/
-│   └── Full farm data.json           2,130 records · the unified dataset
-│
-├── talugpt rag.json                 The chat workflow exported from n8n
-│
-└── docs/
-    ├── screenshot.png
-    └── screenshot-popup.png
+
+`npm run dev` first runs `scripts/copy-data.mjs`, which reads `data_pipeline/Full farm data.json`, slims it to the fields the map needs, and writes `frontend/public/farms.json`. The page then fetches that file and renders ~2,130 markers with clustering.
+
+```bash
+npm run build        # production static export → frontend/out/
+npm run type-check   # tsc --noEmit
 ```
+
+The build emits a fully static site to `frontend/out/` (`output: 'export'` in `next.config.js`), so any static host works.
 
 ---
 
-## The dataset — `Full farm data.json`
+## Deploy your own copy
 
-**2,130 deduplicated, geocoded venues** unified from:
+### Option A — Vercel (recommended, what powers `talugpt.vercel.app`)
 
-| Source | Type | License |
-|---|---|---|
-| **PTA Mahepõllumajanduse Register** | Estonian organic farming registry | CC-BY |
-| **e-Äriregister** | Estonian Business Registry | CC-BY 4.0 |
-| **avatudtalud.ee** | Open Farms Day catalogue | Public |
-| **kohaliktoit.maaturism.ee** | "Local Food" network | Public |
-| **EPKK** | Estonian Chamber of Agriculture and Commerce | Public |
-| **laadakalender.ee** | Estonian fair / market calendar | Public |
+1. Fork this repo on GitHub.
+2. On [vercel.com/new](https://vercel.com/new) → **Import Git Repository** → pick your fork.
+3. **Root directory:** set to `frontend`.
+4. **Framework preset:** Next.js (Vercel detects it automatically).
+5. Click **Deploy**. Every push to `main` redeploys automatically.
 
-**Per-record schema** (selected fields):
+No env vars are required for the frontend itself — the chat widget hits a public n8n webhook (see [Wire up the chat](#wire-up-the-chat) below to point it at your own n8n).
 
-| Field | Notes |
-|---|---|
-| `id`, `slug` | Stable identifier + URL-safe slug |
-| `kind` | `farm` · `producer` · `shop` · `market` · `event` |
-| `name` / `display_name` | Original + cleaned for UI |
-| `lat` · `lng` · `coord_precision` | WGS84, with provenance of the coordinate |
-| `county` · `municipality` | Maakond + vald/linn |
-| `food_categories` · `primary_food_category` | Refined taxonomy (`dairy`, `fruit_berries`, `grain_bakery`, …) |
-| `tags` | 225 unique Estonian keywords (`marja`, `kaer`, `lüpsilehm`, `mahe`, …) |
-| `certifications` | e.g. `mahe` (organic) |
-| `consumer_relevance` | `direct_sale` (high confidence) / `likely_direct` |
-| `contact` | email · phone · website |
-| `data_quality_score` | 0-100, used for ranking |
-| `sources` | Provenance — list of `{source_id, ref, verification_note}` |
+### Option B — Netlify (connected repo)
 
-**Counts at a glance:**
+1. Fork the repo.
+2. On Netlify: **Add new site → Import from Git → pick the fork**.
+3. Settings auto-load from `netlify.toml`:
 
+   ```toml
+   [build]
+     base    = "frontend"
+     command = "npm install && npm run build"
+     publish = "frontend/out"
+   ```
+
+4. Deploy. Auto-rebuilds on every push to `main`.
+
+### Option C — Netlify drag-and-drop
+
+```bash
+cd frontend && npm install && npm run build
+# then drag frontend/out/ onto https://app.netlify.com/drop
 ```
-By kind      : 1683 farms · 327 producers · 53 events · 35 markets · 32 shops
-By county    : Võrumaa 268 · Pärnumaa 235 · Tartumaa 233 · Harjumaa 226 · …
-By food cat. : meat 458 · fruit/berries 380 · dairy 264 · grain/bakery 187 · vegetables 241 · honey 73 · eggs 3 · …
-```
+
+> **CORS reminder.** The chat widget POSTs directly to your n8n webhook. The Chat Trigger / Webhook node in n8n must list your deployed domain (e.g. `https://your-fork.vercel.app`) under **Allowed Origins (CORS)**, otherwise the browser blocks the request.
 
 ---
 
-## The chat — Qdrant + n8n + Claude Opus 4.7
+## Wire up the chat
 
-The floating green chat button (bottom-right of the map) is an **embedded `@n8n/chat` widget** wired to an n8n workflow:
+The floating green chat button is the official `@n8n/chat` widget pointed at an n8n webhook. The chat backend ships in this repo as **[`talugpt rag.json`](talugpt%20rag.json)** — import it once into your n8n instance.
 
-```
-User question
-   │
-   ▼
-@n8n/chat widget  ──POST──►  n8n webhook
-                                │
-                                ├─► embed query (Google `models/gemini-embedding-2`)
-                                ├─► Qdrant semantic search (top-k by vector)
-                                ├─► payload filter on county/municipality
-                                ├─► distance re-rank (if user lat/lng known)
-                                └─► Claude Opus 4.7 (claude-opus-4-7)
-                                     ├─ system block — cached
-                                     ├─ retrieved farm chunks — cached
-                                     └─ user query (streamed back)
-                                │
-                                ▼
-                         streaming Estonian/English answer
-                         + structured farm-IDs to highlight on the map
-```
+### 1. Import the workflow
 
-### Why each piece
+In your n8n UI: **Workflows → Import from file → talugpt rag.json**. The file ships 17 nodes, split into two halves:
 
-- **Qdrant** — vector DB on `:6333`, collection `codex_drive_rag`. One point per record; payload carries county, products, certifications, contact info for filterable retrieval.
-- **Google `models/gemini-embedding-2`** — embeddings called from the n8n workflow (Google Gemini Embeddings node). Multilingual, handles Estonian + English in one space. Requires a Google AI / Vertex AI credential in n8n.
-- **n8n** — orchestrates the retrieval loop and exposes the chat trigger as a webhook. Lets us iterate on retrieval/prompt without redeploying the frontend.
-- **Claude Opus 4.7** (`claude-opus-4-7`) — the answering model. Prompt caching on the system block + the retrieved-context block keeps warm-path latency tight.
+- **Ingestion**: 2× Google Drive folder triggers (file created + file updated) → Drive download → delete-old-vectors-by-`file_id` → Default Data Loader (auto-detects PDF / Docx / CSV / TXT / EPUB) with a 1000 / 200 recursive chunker → Gemini `gemini-embedding-001` → Qdrant insert → 3 s pacing wait. Retry-on-fail is set everywhere for Gemini's notorious 429s.
+- **Chat**: Webhook → Set fields → AI Agent (Claude Opus 4.7) ← Qdrant retrieval tool (same `codex_drive_rag` collection, same Gemini model so query and document vectors match) ← Redis session memory → respond-to-webhook.
 
-### Webhook URL (in `ChatWidget.tsx`)
+### 2. Re-attach credentials
+
+Only credential **IDs** are exported, never the secrets. After import you'll need:
+
+- **Google Drive OAuth2** (for the folder triggers + downloader)
+- **Google Gemini / PaLM API** (for embeddings)
+- **Qdrant API** (collection `codex_drive_rag`, vector size matching `gemini-embedding-001`)
+- **Anthropic API** (for `claude-opus-4-7`)
+- **Redis** (for chat history)
+
+### 3. Point the frontend at your webhook
+
+Edit `frontend/components/ChatWidget.tsx`:
 
 ```ts
-const WEBHOOK_URL = "https://n8n.arleserver.cfd/webhook/codex-qdrant-chat";
+const WEBHOOK_URL = "https://YOUR-N8N-DOMAIN/webhook/codex-qdrant-chat";
 ```
 
-> ⚠ The Chat Trigger node in n8n must list your site origin under **Allowed Origins (CORS)** — otherwise the browser blocks the request.
+Push, redeploy, done.
 
-### The n8n workflow
+### 4. Add a domain to CORS
 
-The full backend workflow — exported as **[`talugpt rag.json`](talugpt%20rag.json)** (17 nodes) — has two halves:
-
-**Ingestion (file → vectors).**
-Google Drive folder triggers (file created + file updated) → Drive download → **delete-old-vectors by `file_id`** (dedupes on re-upload) → Default Data Loader (auto-detects PDF / Docx / CSV / TXT / EPUB) with a 1000/200 recursive chunker → Gemini `gemini-embedding-001` → Qdrant insert → 3 s pacing wait. Retry-on-fail is set everywhere (5 tries, exponential-ish wait) for the well-known Gemini 429s.
-
-**Chat (question → answer).**
-Webhook → Set fields → AI Agent (Claude Opus 4.7) ← Qdrant retrieval tool (same `codex_drive_rag` collection, same Gemini embedding model so the vector spaces match) ← Redis session memory → respond-to-webhook.
-
-Import via *Workflows → Import from file*, then re-attach your own credentials (Google Drive, Gemini, Qdrant, Anthropic, Redis) — only credential *IDs* are exported, never the secrets.
+In your n8n Chat Trigger / Webhook node → **Allowed Origins (CORS)** → add `https://your-deploy-domain` (and `http://localhost:3000` for dev).
 
 ---
 
-## Backend (optional FastAPI service)
+## Embed the chat on another site
 
-If you don't want to run n8n, the `backend/` folder is a self-contained FastAPI app that does the same ingestion + chat work in Python.
+`frontend/embed/talugpt-chat-embed.html` is a self-contained drop-in. Two tags into any site's `<head>` puts the floating green TaluGPT bubble on every page:
 
-| Endpoint | Purpose |
-|---|---|
-| `GET /health` | Readiness probe — verifies Qdrant connectivity |
-| `POST /ingest/file` | Multipart upload — parses PDF / Docx / Xlsx / TXT, chunks, embeds, upserts to Qdrant. Deletes existing chunks for the same file id before inserting (idempotent) |
-| `POST /ingest/raw` | Same flow for raw text (no file parsing) |
-| `POST /chat` | RAG round-trip — embed query, top-k Qdrant search, Claude Opus 4.7 with prompt caching, returns answer + cited record IDs |
+```html
+<link
+  href="https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css"
+  rel="stylesheet" />
+<script type="module">
+  import { createChat } from "https://cdn.jsdelivr.net/npm/@n8n/chat/dist/chat.bundle.es.js";
+  createChat({
+    webhookUrl: "https://n8n.arleserver.cfd/webhook/codex-qdrant-chat",
+    defaultLanguage: "et",
+    initialMessages: ["Tere! 👋"],
+  });
+</script>
+```
+
+No build step, no npm install — the official `@n8n/chat` widget loads from jsDelivr at runtime.
+
+---
+
+## Update the dataset
+
+The source of truth lives at `data_pipeline/Full farm data.json`. To replace or extend it:
+
+1. Drop your new file at `data_pipeline/Full farm data.json` (same path, same name).
+2. The `prebuild` script in `frontend/package.json` runs `scripts/copy-data.mjs` automatically before every `npm run dev` and `npm run build`, regenerating `frontend/public/farms.json`.
+3. The committed `frontend/public/farms.json` is also kept up-to-date so deploys without access to `data_pipeline/` (drag-and-drop) still work — `copy-data.mjs` falls back to it.
+
+The slim payload only carries the fields the map UI needs (id, kind, name, lat/lng, county, products, certifications, tags, contact). Everything else stays in the source file.
+
+---
+
+## Optional: FastAPI backend
+
+If you don't want to run n8n, `backend/` is a self-contained FastAPI app that does the same ingestion + chat work in Python.
 
 ```bash
 cd backend
@@ -165,7 +150,37 @@ cp ../.env.example .env             # ANTHROPIC_API_KEY, QDRANT_URL, QDRANT_COLL
 uvicorn backend.main:app --reload --port 8000
 ```
 
-The backend ships with a Dockerfile and uses the same Qdrant collection (`codex_drive_rag`) as the n8n workflow — so you can mix and match: ingest with FastAPI, chat with n8n, or vice versa.
+| Endpoint | Purpose |
+|---|---|
+| `GET /health` | Readiness probe — verifies Qdrant connectivity |
+| `POST /ingest/file` | Multipart upload — parses PDF / Docx / Xlsx / TXT, chunks, embeds, upserts to Qdrant. Deletes existing chunks for the same file id before inserting (idempotent) |
+| `POST /ingest/raw` | Same flow for raw text |
+| `POST /chat` | RAG round-trip — embed query, top-k Qdrant search, Claude Opus 4.7 with prompt caching, returns answer + cited record IDs |
+
+Ships with a `Dockerfile`. Uses the same Qdrant collection (`codex_drive_rag`) as the n8n workflow, so you can mix and match: ingest with FastAPI, chat with n8n, or vice versa.
+
+---
+
+## Repo layout
+
+```
+talugpt/
+├── frontend/                       Next.js 14 web map (the deployed app)
+│   ├── app/                          page, layout, globals.css
+│   ├── components/
+│   │   ├── FarmMap.tsx               Leaflet map + clustering + popup builder
+│   │   ├── FilterPanel.tsx           Sidebar filters
+│   │   └── ChatWidget.tsx            @n8n/chat embed
+│   ├── embed/                        Drop-in chat-widget for third-party sites
+│   ├── lib/                          Types, taxonomy, filter logic
+│   ├── scripts/copy-data.mjs         Slims the dataset at build time
+│   └── public/farms.json             Generated, served to the browser
+├── backend/                         Optional FastAPI service (Docker-ready)
+├── data_pipeline/Full farm data.json  2,130 records · the unified dataset
+├── talugpt rag.json                 Importable n8n workflow (chat + ingestion)
+├── netlify.toml                     Netlify auto-deploy config
+└── docs/                            Screenshots
+```
 
 ---
 
@@ -174,90 +189,17 @@ The backend ships with a Dockerfile and uses the same Qdrant collection (`codex_
 | Layer | Tech |
 |---|---|
 | LLM | **Claude Opus 4.7** (`claude-opus-4-7`) — 1M context, prompt caching, streaming |
-| Vector DB | **Qdrant** (Docker on `:6333`) — collection `codex_drive_rag` |
-| Embeddings | **Google `models/gemini-embedding-2`** — called from the n8n workflow |
+| Vector DB | **Qdrant** — collection `codex_drive_rag` |
+| Embeddings | **Google `gemini-embedding-001`** — called from n8n |
 | Orchestration | **n8n** (self-hosted) — chat trigger → Qdrant tool → Claude |
-| Frontend | **Next.js 14** (App Router) · React 18 · Leaflet · `@n8n/chat` |
+| Frontend | **Next.js 14** (App Router) · React 18 · Leaflet + marker-cluster · `@n8n/chat` |
 | Map tiles | OpenStreetMap |
 | Geocoding | Nominatim (free, no key) |
-| Type | Fraunces (display) + Manrope (body), via `next/font/google` |
-
----
-
-## Quick start (frontend only)
-
-```bash
-cd frontend
-npm install
-npm run dev          # http://localhost:3000
-```
-
-`npm run dev` runs `scripts/copy-data.mjs` first, which reads `data_pipeline/Full farm data.json`, slims it to the fields the map needs, and writes `public/farms.json`. The map fetches that on load and renders ~2,130 markers.
-
-```bash
-npm run build        # production build
-npm run type-check   # tsc --noEmit
-```
-
-To wire up the chat widget end-to-end you also need:
-
-1. **Qdrant** running with the farm vectors upserted into the `codex_drive_rag` collection. Payload contains `farm_id`, `name`, `county`, `municipality`, `lat`, `lng`, `products`, `certifications`, `contact`, `tags`, `food_categories`, `kind`. The vector dimension matches whatever you configured `models/gemini-embedding-2` to output.
-2. **An n8n instance** with a Chat Trigger node, a Qdrant retrieval tool, and a Claude (Anthropic) node configured with `claude-opus-4-7` and prompt caching. The webhook URL goes into `ChatWidget.tsx`.
-3. **`ANTHROPIC_API_KEY`** in n8n's credentials.
-
----
-
-## Deploy
-
-The frontend is configured for **Next.js static export** (`output: 'export'` in `next.config.js`), so it deploys to any static host.
-
-### Option A — Netlify drag-and-drop
-
-```bash
-cd frontend
-npm install
-npm run build      # produces frontend/out/
-```
-
-Then drag `frontend/out/` onto **https://app.netlify.com/drop**.
-
-### Option B — Netlify connected to this repo (auto-deploys)
-
-`netlify.toml` at the repo root pre-configures everything:
-
-```toml
-[build]
-  base    = "frontend"
-  command = "npm install && npm run build"
-  publish = "frontend/out"
-
-[build.environment]
-  NODE_VERSION = "20"
-```
-
-In Netlify: **Add new site → Import from Git → pick this repo** → settings auto-load from `netlify.toml`.
-
-> The chat widget posts directly to the n8n webhook at `https://n8n.arleserver.cfd/webhook/codex-qdrant-chat`. The Chat Trigger node in n8n must list your Netlify domain (e.g. `https://talugpt.netlify.app`) under **Allowed Origins (CORS)**, otherwise the browser blocks chat requests.
-
-
-## Design
-
-**"Estonian editorial almanac"** — warm oat-paper background, deep forest green primary, mustard honey accent, refined Fraunces serif paired with Manrope. Newsroom-style header with dateline. Filter chips reveal active state with a pressed-pill drop shadow. Popups are styled like portrait cards: tracked kind-tag, large serif name, italic moss-green location line, MAHE certification badge, food-category badges, Estonian keyword tag pills, hyperlinks underline on hover.
-
-![Popup detail](docs/screenshot-popup.png)
-
----
-
-## Data licensing & credits
-
-- Source data is open per the licenses listed above (predominantly **CC-BY**).
-- Coordinates were geocoded with Nominatim / OpenStreetMap (ODbL).
-- Map tiles © OpenStreetMap contributors.
-
-If you republish or build on this dataset, please credit the original sources via the `sources` field carried on every record in `Full farm data.json`.
+| Type | Fraunces (display) + Alegreya Sans (body), via `next/font/google` |
+| Hosting | Vercel (live: talugpt.vercel.app) — Netlify also supported via `netlify.toml` |
 
 ---
 
 ## License
 
-The application code is MIT-licensed. The dataset is redistributed under the licenses of its upstream sources — see the `sources` field on each record for provenance.
+The application code is **MIT-licensed**. The dataset is redistributed under the licenses of its upstream sources — see the `sources` field on each record in `Full farm data.json` for provenance (predominantly **CC-BY**). Map tiles © OpenStreetMap contributors (ODbL). Geocoding © Nominatim / OpenStreetMap.
