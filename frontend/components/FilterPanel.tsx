@@ -32,13 +32,21 @@ export default function FilterPanel({
     onChange({ ...state, productCategories: next });
   };
 
+  const fmt = (n: number) => n.toLocaleString("et-EE").replace(/,/g, " ");
+
   return (
     <>
       <div className="match-count">
-        <strong>{totalShown.toLocaleString("et-EE")}</strong>
+        <span className="match-eyebrow">Kaardil</span>
+        <strong>{fmt(totalShown)}</strong>
         <span className="of">
-          / {totalRecords.toLocaleString("et-EE")} kohta nähtaval
+          <em>kõigist</em>{" "}
+          <span className="match-total">{fmt(totalRecords)}</span>{" "}
+          <em>paigast</em>
         </span>
+        <div className="match-flourish" aria-hidden>
+          <span className="match-flourish-mark">✦</span>
+        </div>
       </div>
 
       <div className="filter-section">
