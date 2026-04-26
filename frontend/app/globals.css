@@ -417,6 +417,33 @@ header.app-header::after {
   box-shadow: inset -8px 0 24px -16px rgba(14, 42, 19, 0.18);
 }
 
+/* Close (×) button — only shown on mobile (see media queries below) */
+.sidebar-close {
+  display: none;
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  width: 36px;
+  height: 36px;
+  background: transparent;
+  border: 1px solid var(--rule);
+  border-radius: 50%;
+  color: var(--moss);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  font-family: var(--display);
+  font-weight: 400;
+  z-index: 2;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+
+.sidebar-close:hover {
+  background: var(--paper);
+  border-color: var(--moss);
+  transform: scale(1.05);
+}
+
 .sidebar::-webkit-scrollbar { width: 8px; }
 .sidebar::-webkit-scrollbar-track { background: var(--paper); }
 .sidebar::-webkit-scrollbar-thumb {
@@ -1340,7 +1367,7 @@ header.app-header::after {
   }
 }
 
-@media (max-width: 720px) {
+@media (max-width: 768px) {
   header.app-header {
     padding: 8px 14px 9px;
     padding-left: max(14px, env(safe-area-inset-left));
@@ -1391,16 +1418,33 @@ header.app-header::after {
     top: 0;
     left: 0;
     bottom: 0;
-    width: min(92vw, 380px);
+    /* 86vw caps at 360px so the map stays visible to the right; gives the
+       drawer feel instead of a full-screen takeover */
+    width: min(86vw, 360px);
     max-width: none;
     z-index: 100;
-    box-shadow: 0 0 32px rgba(14, 42, 19, 0.32);
+    border-right: 1px solid var(--rule-strong);
+    border-top-right-radius: 4px;
+    border-bottom-right-radius: 4px;
+    box-shadow: 4px 0 32px rgba(14, 42, 19, 0.32);
     padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);
   }
 
   .sidebar.hidden {
-    transform: translateX(-100%);
+    transform: translateX(-101%);
+  }
+
+  /* The × close button is mobile-only */
+  .sidebar-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .sidebar-eyebrow {
+    /* Push the eyebrow text right so it doesn't run under the × button */
+    padding-right: 56px;
   }
 
   .overlay.show {
