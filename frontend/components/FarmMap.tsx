@@ -153,11 +153,36 @@ export default function FarmMap() {
   const [error, setError] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(() => {
     // Component is loaded with ssr: false, so window is always defined here.
-    // On phones, start with the map visible — user opens filters via the
-    // hamburger button.
+    // On phones/tablets, start with the map visible — user opens filters via
+    // the Filtrid button.
     if (typeof window === "undefined") return true;
-    return window.innerWidth > 720;
+    return window.innerWidth > 768;
   });
+
+  // Auto-close the drawer on rotate / resize across the mobile breakpoint, and
+  // lock body scroll while the drawer is open on mobile.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const onResize = () => {
+      const isDesktop = window.innerWidth > 768;
+      setSidebarOpen((prev) => (isDesktop ? true : prev));
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const isMobile = window.innerWidth <= 768;
+    if (isMobile && sidebarOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [sidebarOpen]);
   const [filters, setFilters] = useState<FilterState>({
     kinds: new Set(),
     county: null,
@@ -410,6 +435,14 @@ export default function FarmMap() {
 
       <main className="app-main">
         <aside className={`sidebar${sidebarOpen ? "" : " hidden"}`}>
+          <button
+            className="sidebar-close"
+            onClick={() => setSidebarOpen(false)}
+            aria-label="Sulge filtrid"
+            type="button"
+          >
+            <span aria-hidden>×</span>
+          </button>
           <div className="sidebar-eyebrow">
             <span className="mark" aria-hidden>
               ✦
