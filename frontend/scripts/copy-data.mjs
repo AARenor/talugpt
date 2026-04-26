@@ -1,10 +1,58 @@
-import { readFile, writeFile, mkdir } from "node:fs/promises";
+import { readFile, writeFile, mkdir, stat } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const SRC = resolve(__dirname, "../../data_pipeline/Full farm data.json");
+
+// Look for the source dataset in several plausible locations so this script
+// works whether the build runs from a connected-repo deploy (Netlify checks
+// out the whole repo, data is one level up), a drag-and-drop deploy of just
+// `frontend/` (data was bundled inside the frontend), or a local dev session.
+const CANDIDATES = [
+  resolve(__dirname, "../../data_pipeline/Full farm data.json"),
+  resolve(__dirname, "../data_pipeline/Full farm data.json"),
+  resolve(__dirname, "../data/Full farm data.json"),
+  resolve(__dirname, "../public/data/Full farm data.json"),
+];
+
 const DST = resolve(__dirname, "../public/farms.json");
+
+async function exists(p) {
+  try {
+    await stat(p);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+let SRC = null;
+for (const c of CANDIDATES) {
+  if (await exists(c)) {
+    SRC = c;
+    break;
+  }
+}
+
+if (!SRC) {
+  if (await exists(DST)) {
+    console.warn(
+      `[copy-data] source dataset not found in any of: \n  ${CANDIDATES.join(
+        "\n  "
+      )}\n[copy-data] but ${DST} already exists — skipping regeneration.`
+    );
+    process.exit(0);
+  }
+  console.error(
+    `[copy-data] source dataset not found and ${DST} is missing.`
+  );
+  console.error(
+    `[copy-data] tried:\n  ${CANDIDATES.join("\n  ")}`
+  );
+  process.exit(1);
+}
+
+console.log(`[copy-data] reading from ${SRC}`);
 
 const raw = await readFile(SRC, "utf8");
 const data = JSON.parse(raw);
@@ -47,5 +95,5 @@ await writeFile(DST, JSON.stringify(slim));
 
 const sizeKb = Math.round(Buffer.byteLength(JSON.stringify(slim)) / 1024);
 console.log(
-  `wrote ${slim.records.length} records to public/farms.json (${sizeKb} KB)`
+  `[copy-data] wrote ${slim.records.length} records to public/farms.json (${sizeKb} KB)`
 );
