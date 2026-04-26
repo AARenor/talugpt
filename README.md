@@ -87,7 +87,7 @@ User question
    ▼
 @n8n/chat widget  ──POST──►  n8n webhook
                                 │
-                                ├─► embed query (multilingual-e5-large, 1024-dim)
+                                ├─► embed query (Google `models/gemini-embedding-2`)
                                 ├─► Qdrant semantic search (top-k by vector)
                                 ├─► payload filter on county/municipality
                                 ├─► distance re-rank (if user lat/lng known)
@@ -103,8 +103,8 @@ User question
 
 ### Why each piece
 
-- **Qdrant** — vector DB on `:6333`. One point per farm record; payload carries county, products, certifications, contact info for filterable retrieval.
-- **`intfloat/multilingual-e5-large`** — 1024-dim multilingual embeddings, runs locally via `sentence-transformers`, no API key required. Estonian + English in one space.
+- **Qdrant** — vector DB on `:6333`, collection `codex_drive_rag`. One point per record; payload carries county, products, certifications, contact info for filterable retrieval.
+- **Google `models/gemini-embedding-2`** — embeddings called from the n8n workflow (Google Gemini Embeddings node). Multilingual, handles Estonian + English in one space. Requires a Google AI / Vertex AI credential in n8n.
 - **n8n** — orchestrates the retrieval loop and exposes the chat trigger as a webhook. Lets us iterate on retrieval/prompt without redeploying the frontend.
 - **Claude Opus 4.7** (`claude-opus-4-7`) — the answering model. Prompt caching on the system block + the retrieved-context block keeps warm-path latency tight.
 
@@ -127,8 +127,8 @@ The full backend workflow — Google Drive folder trigger → embed (Gemini) →
 | Layer | Tech |
 |---|---|
 | LLM | **Claude Opus 4.7** (`claude-opus-4-7`) — 1M context, prompt caching, streaming |
-| Vector DB | **Qdrant** (Docker on `:6333`) — cosine, 1024-dim |
-| Embeddings | **`intfloat/multilingual-e5-large`** via `sentence-transformers` (local) |
+| Vector DB | **Qdrant** (Docker on `:6333`) — collection `codex_drive_rag` |
+| Embeddings | **Google `models/gemini-embedding-2`** — called from the n8n workflow |
 | Orchestration | **n8n** (self-hosted) — chat trigger → Qdrant tool → Claude |
 | Frontend | **Next.js 14** (App Router) · React 18 · Leaflet · `@n8n/chat` |
 | Map tiles | OpenStreetMap |
@@ -154,7 +154,7 @@ npm run type-check   # tsc --noEmit
 
 To wire up the chat widget end-to-end you also need:
 
-1. **Qdrant** running with the farm vectors upserted. Schema: 1024-dim cosine, payload contains `farm_id`, `name`, `county`, `municipality`, `lat`, `lng`, `products`, `certifications`, `contact`, `tags`, `food_categories`, `kind`.
+1. **Qdrant** running with the farm vectors upserted into the `codex_drive_rag` collection. Payload contains `farm_id`, `name`, `county`, `municipality`, `lat`, `lng`, `products`, `certifications`, `contact`, `tags`, `food_categories`, `kind`. The vector dimension matches whatever you configured `models/gemini-embedding-2` to output.
 2. **An n8n instance** with a Chat Trigger node, a Qdrant retrieval tool, and a Claude (Anthropic) node configured with `claude-opus-4-7` and prompt caching. The webhook URL goes into `ChatWidget.tsx`.
 3. **`ANTHROPIC_API_KEY`** in n8n's credentials.
 
