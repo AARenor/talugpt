@@ -83,6 +83,99 @@ body {
   --chat--input--background:             #fbf7eb;
 }
 
+/* ------------------------------------------------------------------
+   CHAT PROMPT — bottom-left nudge toward the chatbot
+   ------------------------------------------------------------------ */
+
+.chat-prompt {
+  position: fixed;
+  left: calc(min(44vw, 348px) + 20px);
+  bottom: 20px;
+  z-index: 900;
+  width: min(280px, calc(100vw - 40px));
+  background: var(--ivory);
+  color: var(--ink);
+  border: 1px solid var(--rule-strong);
+  border-radius: 8px;
+  box-shadow: var(--shadow-lg);
+  padding: 16px 16px 14px;
+  animation: chatPromptIn 0.38s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.chat-prompt::before {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border: 1px solid rgba(31, 68, 36, 0.12);
+  border-radius: 5px;
+  pointer-events: none;
+}
+
+.chat-prompt p {
+  margin: 0 24px 12px 0;
+  font-family: var(--display);
+  font-size: 1.06rem;
+  line-height: 1.28;
+  font-weight: 600;
+  color: var(--moss);
+  font-variation-settings: "opsz" 24, "SOFT" 40;
+}
+
+.chat-prompt-action {
+  position: relative;
+  z-index: 1;
+  border: 0;
+  border-radius: 999px;
+  background: var(--moss);
+  color: var(--ivory);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.68rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-weight: 800;
+  padding: 8px 12px;
+  transition: background 0.16s ease, transform 0.16s ease;
+}
+
+.chat-prompt-action:hover {
+  background: var(--moss-deep);
+  transform: translateY(-1px);
+}
+
+.chat-prompt-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 1;
+  width: 24px;
+  height: 24px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  line-height: 1;
+  transition: border-color 0.16s ease, color 0.16s ease;
+}
+
+.chat-prompt-close:hover {
+  border-color: var(--rule);
+  color: var(--clay);
+}
+
+@keyframes chatPromptIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 * {
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
@@ -388,6 +481,10 @@ header.app-header::after {
   flex: 1;
   min-height: 300px;
   background: #d6d8c4;
+}
+
+.leaflet-container.map-marker-hovering {
+  cursor: pointer;
 }
 
 .overlay {
@@ -1143,6 +1240,23 @@ header.app-header::after {
   color: var(--moss-deep);
 }
 
+.farm-tooltip {
+  background: var(--ivory) !important;
+  border: 1px solid var(--rule-strong) !important;
+  border-radius: 2px !important;
+  box-shadow: var(--shadow-sm) !important;
+  color: var(--ink) !important;
+  font-family: var(--body) !important;
+  font-size: 0.74rem !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.02em;
+  padding: 4px 8px !important;
+}
+
+.farm-tooltip.leaflet-tooltip-top::before {
+  border-top-color: var(--rule-strong) !important;
+}
+
 /* ------------------------------------------------------------------
    LEAFLET CONTROLS — match the paper aesthetic
    ------------------------------------------------------------------ */
@@ -1378,7 +1492,8 @@ header.app-header::after {
   .filter-section,
   .colophon,
   #map,
-  .compass-rose {
+  .compass-rose,
+  .chat-prompt {
     animation: none;
   }
   .filter-grid button {
@@ -1616,6 +1731,13 @@ header.app-header::after {
   :root {
     --chat--window--width: 100vw;
     --chat--window--height: 100dvh;
+  }
+
+  .chat-prompt {
+    left: 14px;
+    right: 86px;
+    bottom: 14px;
+    width: auto;
   }
 }
 

@@ -22,6 +22,11 @@ export const metadata: Metadata = {
   title: "TaluGPT — Eesti Talukaart",
   description:
     "Eesti talud, turud, tootjad, poed ja toidusündmused — andmed PTA mahepõllumajanduse registrist ja avalikest allikatest.",
+  icons: {
+    icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
+    shortcut: [{ url: "/favicon.svg", type: "image/svg+xml" }],
+    apple: [{ url: "/favicon.svg", type: "image/svg+xml" }],
+  },
 };
 
 export const viewport: Viewport = {

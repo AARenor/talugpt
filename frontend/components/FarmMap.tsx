@@ -142,11 +142,46 @@ function escapeAttr(s: string): string {
   return escapeHtml(s);
 }
 
+type MarkerVisualState = "normal" | "hover" | "selected";
+
+function setMarkerVisualState(
+  marker: CircleMarker,
+  state: MarkerVisualState,
+  filterActive = false,
+  isTouch = false
+) {
+  const baseRadius = isTouch ? 8 : 6;
+  const activeRadius = isTouch ? 11 : 9;
+  const hoverRadius = isTouch ? 13 : 10;
+  const selectedRadius = isTouch ? 14 : 11;
+  const radius =
+    state === "selected"
+      ? selectedRadius
+      : state === "hover"
+      ? hoverRadius
+      : filterActive
+      ? activeRadius
+      : baseRadius;
+  const weight =
+    state === "selected" ? 3 : state === "hover" ? 2.5 : filterActive ? 1.6 : isTouch ? 1.5 : 1;
+  const fillOpacity =
+    state === "normal" ? (filterActive ? 0.95 : 0.78) : 1;
+
+  marker.setRadius(radius);
+  marker.setStyle({
+    fillOpacity,
+    opacity: state === "normal" ? 0.92 : 1,
+    weight,
+  });
+}
+
 export default function FarmMap() {
   const mapEl = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<LeafletMap | null>(null);
   const markersRef = useRef<Map<string, CircleMarker>>(new Map());
   const clusterRef = useRef<MarkerClusterGroup | null>(null);
+  const selectedMarkerRef = useRef<CircleMarker | null>(null);
+  const filterActiveRef = useRef(false);
   const leafletRef = useRef<typeof import("leaflet") | null>(null);
 
   const [dataset, setDataset] = useState<FarmDataset | null>(null);
@@ -262,6 +297,7 @@ export default function FarmMap() {
       }).addTo(map);
 
       mapRef.current = map;
+      const markerRenderer = L.canvas({ padding: 0.5, tolerance: 14 });
 
       const cluster = L.markerClusterGroup({
         showCoverageOnHover: false,
@@ -305,6 +341,7 @@ export default function FarmMap() {
 
       for (const farm of dataset.records) {
         const marker = L.circleMarker([farm.lat, farm.lng], {
+          renderer: markerRenderer,
           radius: baseRadius,
           color: KIND_COLORS[farm.kind],
           fillColor: KIND_COLORS[farm.kind],
@@ -317,7 +354,40 @@ export default function FarmMap() {
           interactive: true,
         });
 
+        marker.bindTooltip(escapeHtml(farm.name), {
+          direction: "top",
+          sticky: true,
+          opacity: 0.96,
+          className: "farm-tooltip",
+        });
+
+        marker.on("mouseover", () => {
+          setMarkerVisualState(marker, "hover", filterActiveRef.current, isTouch);
+          marker.bringToFront();
+          map.getContainer().classList.add("map-marker-hovering");
+        });
+
+        marker.on("mouseout", () => {
+          map.getContainer().classList.remove("map-marker-hovering");
+          if (selectedMarkerRef.current !== marker) {
+            setMarkerVisualState(marker, "normal", filterActiveRef.current, isTouch);
+          }
+        });
+
         marker.on("click", () => {
+          if (selectedMarkerRef.current && selectedMarkerRef.current !== marker) {
+            setMarkerVisualState(
+              selectedMarkerRef.current,
+              "normal",
+              filterActiveRef.current,
+              isTouch
+            );
+          }
+
+          selectedMarkerRef.current = marker;
+          setMarkerVisualState(marker, "selected", filterActiveRef.current, isTouch);
+          marker.bringToFront();
+
           if (!marker.getPopup()) {
             marker.bindPopup(buildPopupHtml(farm), {
               maxWidth: 300,
@@ -329,6 +399,13 @@ export default function FarmMap() {
           marker.openPopup();
         });
 
+        marker.on("popupclose", () => {
+          if (selectedMarkerRef.current === marker) {
+            selectedMarkerRef.current = null;
+            setMarkerVisualState(marker, "normal", filterActiveRef.current, isTouch);
+          }
+        });
+
         markersRef.current.set(farm.id, marker);
         cluster.addLayer(marker);
       }
@@ -338,6 +415,7 @@ export default function FarmMap() {
 
     return () => {
       disposed = true;
+      selectedMarkerRef.current = null;
       markersRef.current.clear();
       clusterRef.current = null;
       mapRef.current?.remove();
@@ -364,6 +442,7 @@ export default function FarmMap() {
       filters.organicOnly ||
       filters.search.trim().length > 0 ||
       filters.productCategories.size > 0;
+    filterActiveRef.current = filterActive;
 
     const visibleLatLngs: [number, number][] = [];
     const toAdd: CircleMarker[] = [];
@@ -373,21 +452,25 @@ export default function FarmMap() {
       typeof window !== "undefined" &&
       (window.matchMedia("(pointer: coarse)").matches ||
         "ontouchstart" in window);
-    const baseRadius = isTouch ? 8 : 6;
-    const activeRadius = isTouch ? 11 : 9;
 
     markersRef.current.forEach((marker, id) => {
       const isVisible = visible.has(id);
       const inCluster = cluster.hasLayer(marker);
       if (isVisible) {
         if (!inCluster) toAdd.push(marker);
-        marker.setStyle({
-          radius: filterActive ? activeRadius : baseRadius,
-          fillOpacity: filterActive ? 0.95 : 0.78,
-        });
+        setMarkerVisualState(
+          marker,
+          selectedMarkerRef.current === marker ? "selected" : "normal",
+          filterActive,
+          isTouch
+        );
         const ll = marker.getLatLng();
         visibleLatLngs.push([ll.lat, ll.lng]);
       } else if (inCluster) {
+        if (selectedMarkerRef.current === marker) {
+          selectedMarkerRef.current = null;
+          marker.closePopup();
+        }
         toRemove.push(marker);
       }
     });

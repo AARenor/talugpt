@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="TaluGPT">
+  <rect width="64" height="64" rx="14" fill="#1f4424"/>
+  <path d="M10 44c8-5 16-7 24-7s14 2 20 7" fill="none" stroke="#fbf7eb" stroke-width="4" stroke-linecap="round"/>
+  <path d="M12 52c7-4 14-6 22-6s13 2 18 6" fill="none" stroke="#c89212" stroke-width="3" stroke-linecap="round"/>
+  <path d="M32 13l5.8 12.1 13.3 1.8-9.6 9.4 2.3 13.2L32 43.2l-11.8 6.3 2.3-13.2-9.6-9.4 13.3-1.8L32 13z" fill="#fbf7eb"/>
+  <circle cx="32" cy="31" r="7" fill="#1f4424"/>
+  <path d="M32 25v12M26 31h12" stroke="#c89212" stroke-width="3" stroke-linecap="round"/>
+</svg>
