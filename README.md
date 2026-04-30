@@ -12,7 +12,7 @@ Ask in Estonian or English — *"Kus saab Viimsis toorpiima?"* or *"Where can I 
 
 ## What it is
 
-A web map of **2,130 deduplicated, geocoded** Estonian farms, producers, markets, shops, and food events, stitched together from the PTA organic farming registry, the Estonian Business Registry (e-Äriregister), avatudtalud.ee, kohaliktoit.maaturism.ee, EPKK, and laadakalender.ee.
+A web map of **2,272 deduplicated, geocoded** Estonian farms, producers, markets, shops, and food events, stitched together from the PTA organic farming registry, the Estonian Business Registry (e-Äriregister), avatudtalud.ee, kohaliktoit.maaturism.ee, EPKK, and laadakalender.ee.
 
 Each pin carries the venue's kind, county, municipality, primary food category, products, certifications (e.g. *mahe*), contact info, tags, and source provenance. Filter chips on the side narrow the map by kind, county, food category, and organic certification. A floating chat widget answers free-form questions in Estonian or English by retrieving the most relevant venues from a vector database and letting Claude write the reply.
 
