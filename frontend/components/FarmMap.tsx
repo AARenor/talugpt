@@ -180,6 +180,7 @@ export default function FarmMap() {
   const mapRef = useRef<LeafletMap | null>(null);
   const markersRef = useRef<Map<string, CircleMarker>>(new Map());
   const clusterRef = useRef<MarkerClusterGroup | null>(null);
+  const visibleMarkerIdsRef = useRef<Set<string>>(new Set());
   const selectedMarkerRef = useRef<CircleMarker | null>(null);
   const filterActiveRef = useRef(false);
   const leafletRef = useRef<typeof import("leaflet") | null>(null);
@@ -297,6 +298,10 @@ export default function FarmMap() {
       }).addTo(map);
 
       mapRef.current = map;
+      const isTouch =
+        typeof window !== "undefined" &&
+        (window.matchMedia("(pointer: coarse)").matches ||
+          "ontouchstart" in window);
       const markerRenderer = L.canvas({ padding: 0.5, tolerance: 14 });
 
       const cluster = L.markerClusterGroup({
@@ -305,9 +310,12 @@ export default function FarmMap() {
         // plugin automatically spiderfies on click when zoom-to-bounds
         // would be a no-op (bounds collapse to a single point).
         spiderfyOnMaxZoom: true,
-        spiderfyOnEveryZoom: true,
+        spiderfyOnEveryZoom: false,
         zoomToBoundsOnClick: true,
-        maxClusterRadius: 50,
+        removeOutsideVisibleBounds: false,
+        disableClusteringAtZoom: 15,
+        spiderfyDistanceMultiplier: isTouch ? 1.5 : 1.15,
+        maxClusterRadius: isTouch ? 64 : 50,
         chunkedLoading: true,
         iconCreateFunction: (c) => {
           const count = c.getChildCount();
@@ -332,10 +340,6 @@ export default function FarmMap() {
       // Touch devices need fatter markers — a 5px-radius dot is below
       // the comfortable tap target on phones (10px wide). On mobile we
       // use 8px (16px wide) so taps land more reliably.
-      const isTouch =
-        typeof window !== "undefined" &&
-        (window.matchMedia("(pointer: coarse)").matches ||
-          "ontouchstart" in window);
       const baseRadius = isTouch ? 8 : 6;
       const baseWeight = isTouch ? 1.5 : 1;
 
@@ -410,6 +414,7 @@ export default function FarmMap() {
         cluster.addLayer(marker);
       }
 
+      visibleMarkerIdsRef.current = new Set(dataset.records.map((farm) => farm.id));
       cluster.addTo(map);
     })();
 
@@ -417,6 +422,7 @@ export default function FarmMap() {
       disposed = true;
       selectedMarkerRef.current = null;
       markersRef.current.clear();
+      visibleMarkerIdsRef.current = new Set();
       clusterRef.current = null;
       mapRef.current?.remove();
       mapRef.current = null;
@@ -435,7 +441,8 @@ export default function FarmMap() {
     const cluster = clusterRef.current;
     if (!map || !L || !cluster || !dataset) return;
 
-    const visible = new Set(filtered.map((f) => f.id));
+    const nextVisible = new Set(filtered.map((f) => f.id));
+    const previousVisible = visibleMarkerIdsRef.current;
     const filterActive =
       filters.kinds.size > 0 ||
       filters.county !== null ||
@@ -454,10 +461,10 @@ export default function FarmMap() {
         "ontouchstart" in window);
 
     markersRef.current.forEach((marker, id) => {
-      const isVisible = visible.has(id);
-      const inCluster = cluster.hasLayer(marker);
+      const isVisible = nextVisible.has(id);
+      const wasVisible = previousVisible.has(id);
       if (isVisible) {
-        if (!inCluster) toAdd.push(marker);
+        if (!wasVisible) toAdd.push(marker);
         setMarkerVisualState(
           marker,
           selectedMarkerRef.current === marker ? "selected" : "normal",
@@ -466,7 +473,7 @@ export default function FarmMap() {
         );
         const ll = marker.getLatLng();
         visibleLatLngs.push([ll.lat, ll.lng]);
-      } else if (inCluster) {
+      } else if (wasVisible) {
         if (selectedMarkerRef.current === marker) {
           selectedMarkerRef.current = null;
           marker.closePopup();
@@ -478,6 +485,7 @@ export default function FarmMap() {
     // Bulk add/remove is far cheaper than per-marker for clusters.
     if (toRemove.length > 0) cluster.removeLayers(toRemove);
     if (toAdd.length > 0) cluster.addLayers(toAdd);
+    visibleMarkerIdsRef.current = nextVisible;
 
     if (filterActive && visibleLatLngs.length > 0) {
       map.fitBounds(L.latLngBounds(visibleLatLngs).pad(0.15), {
