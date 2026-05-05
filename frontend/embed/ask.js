@@ -3,7 +3,7 @@
 // Usage:
 //   <div id="chat-output"></div>
 //   <script src="ask.js"></script>
-//   <script>askTaluGPT("Kus saab Viimsis toorpiima?")</script>
+//   <script>askTaluGPT("Millised talupoed on minu lähedal?")</script>
 
 const WEBHOOK_URL =
   "https://n8n.arleserver.cfd/webhook/f2d5f715-a71a-4188-8abb-d27f688a02f8/chat";

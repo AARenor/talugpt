@@ -53,7 +53,7 @@ export default function ChatWidget() {
         defaultLanguage: "en",
         initialMessages: [
           "Tere! 👋",
-          "Küsi minult Eesti talude, turgude, tootjate ja kohaliku toidu kohta. Näiteks: \"Kus saab Viimsis toorpiima?\"",
+          "Avasta Eesti talusid, väiketootjaid, turge ja kohalikku toitu. Näiteks: \"Millised talupoed on minu lähedal?\"",
         ],
         i18n: {
           en: {
