@@ -312,11 +312,13 @@ export default function FarmMap() {
         spiderfyOnMaxZoom: true,
         spiderfyOnEveryZoom: false,
         zoomToBoundsOnClick: true,
-        removeOutsideVisibleBounds: false,
+        removeOutsideVisibleBounds: true,
         disableClusteringAtZoom: 15,
         spiderfyDistanceMultiplier: isTouch ? 1.5 : 1.15,
         maxClusterRadius: isTouch ? 64 : 50,
         chunkedLoading: true,
+        chunkInterval: 120,
+        chunkDelay: 30,
         iconCreateFunction: (c) => {
           const count = c.getChildCount();
           const size = count < 10 ? 32 : count < 100 ? 38 : count < 1000 ? 46 : 54;
@@ -342,6 +344,7 @@ export default function FarmMap() {
       // use 8px (16px wide) so taps land more reliably.
       const baseRadius = isTouch ? 8 : 6;
       const baseWeight = isTouch ? 1.5 : 1;
+      const allMarkers: CircleMarker[] = [];
 
       for (const farm of dataset.records) {
         const marker = L.circleMarker([farm.lat, farm.lng], {
@@ -411,10 +414,11 @@ export default function FarmMap() {
         });
 
         markersRef.current.set(farm.id, marker);
-        cluster.addLayer(marker);
+        allMarkers.push(marker);
       }
 
       visibleMarkerIdsRef.current = new Set(dataset.records.map((farm) => farm.id));
+      cluster.addLayers(allMarkers);
       cluster.addTo(map);
     })();
 

@@ -41,15 +41,11 @@ export default function ChatWidget() {
       const { createChat } = await import("@n8n/chat");
       if (cancelled) return;
 
-      const isLocalDevHost = ["localhost", "127.0.0.1"].includes(
-        window.location.hostname
-      );
-
       createChat({
         webhookUrl: WEBHOOK_URL,
         mode: "window",
         showWelcomeScreen: false,
-        loadPreviousSession: !isLocalDevHost,
+        loadPreviousSession: false,
         defaultLanguage: "en",
         initialMessages: [
           "Tere! 👋",
