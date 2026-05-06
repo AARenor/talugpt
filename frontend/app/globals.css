@@ -487,6 +487,72 @@ header.app-header::after {
   cursor: pointer;
 }
 
+.leaflet-container .farm-map-marker {
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.farm-marker-target {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+}
+
+.farm-marker-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--marker-color);
+  border: 1px solid rgba(251, 247, 235, 0.9);
+  box-shadow:
+    0 0 0 1px rgba(14, 42, 19, 0.55),
+    0 2px 6px rgba(14, 42, 19, 0.24);
+  opacity: 0.82;
+  transform: scale(1);
+  transition:
+    transform 0.12s ease,
+    opacity 0.12s ease,
+    border-color 0.12s ease,
+    box-shadow 0.12s ease;
+}
+
+.farm-map-marker.is-filtered .farm-marker-dot {
+  opacity: 0.96;
+  transform: scale(1.28);
+}
+
+.farm-map-marker.is-hover .farm-marker-dot,
+.farm-map-marker:hover .farm-marker-dot {
+  opacity: 1;
+  transform: scale(1.55);
+  border-color: var(--ivory);
+  box-shadow:
+    0 0 0 2px rgba(251, 247, 235, 0.95),
+    0 0 0 4px rgba(14, 42, 19, 0.45),
+    0 4px 12px rgba(14, 42, 19, 0.34);
+}
+
+.farm-map-marker.is-selected .farm-marker-dot {
+  opacity: 1;
+  transform: scale(1.78);
+  border-color: var(--honey);
+  box-shadow:
+    0 0 0 2px var(--ivory),
+    0 0 0 5px rgba(200, 146, 18, 0.45),
+    0 6px 16px rgba(14, 42, 19, 0.38);
+}
+
+@media (pointer: coarse) {
+  .farm-marker-dot {
+    width: 16px;
+    height: 16px;
+    border-width: 1.5px;
+  }
+}
+
 .overlay {
   display: none;
   position: fixed;

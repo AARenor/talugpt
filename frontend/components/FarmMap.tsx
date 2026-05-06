@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { Map as LeafletMap, CircleMarker, MarkerClusterGroup } from "leaflet";
+import type { DivIcon, Map as LeafletMap, Marker, MarkerClusterGroup } from "leaflet";
 import { applyFilters } from "@/lib/farmFilter";
 import {
   ALL_KINDS,
@@ -144,44 +144,46 @@ function escapeAttr(s: string): string {
 
 type MarkerVisualState = "normal" | "hover" | "selected";
 
-function setMarkerVisualState(
-  marker: CircleMarker,
-  state: MarkerVisualState,
-  filterActive = false,
-  isTouch = false
-) {
-  const baseRadius = isTouch ? 8 : 6;
-  const activeRadius = isTouch ? 11 : 9;
-  const hoverRadius = isTouch ? 13 : 10;
-  const selectedRadius = isTouch ? 14 : 11;
-  const radius =
-    state === "selected"
-      ? selectedRadius
-      : state === "hover"
-      ? hoverRadius
-      : filterActive
-      ? activeRadius
-      : baseRadius;
-  const weight =
-    state === "selected" ? 3 : state === "hover" ? 2.5 : filterActive ? 1.6 : isTouch ? 1.5 : 1;
-  const fillOpacity =
-    state === "normal" ? (filterActive ? 0.95 : 0.78) : 1;
+function buildFarmIcon(
+  L: typeof import("leaflet"),
+  farm: Farm,
+  isTouch: boolean
+): DivIcon {
+  const size = isTouch ? 36 : 30;
 
-  marker.setRadius(radius);
-  marker.setStyle({
-    fillOpacity,
-    opacity: state === "normal" ? 0.92 : 1,
-    weight,
+  return L.divIcon({
+    className: "farm-map-marker",
+    html: `<span class="farm-marker-target" aria-hidden="true"><span class="farm-marker-dot" style="--marker-color:${escapeAttr(
+      KIND_COLORS[farm.kind]
+    )}"></span></span>`,
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+    tooltipAnchor: [0, -(size / 2)],
+    popupAnchor: [0, -(size / 2)],
   });
+}
+
+function setMarkerVisualState(
+  marker: Marker,
+  state: MarkerVisualState,
+  filterActive = false
+) {
+  const el = marker.getElement();
+  if (!el) return;
+
+  el.dataset.state = state;
+  el.classList.toggle("is-hover", state === "hover");
+  el.classList.toggle("is-selected", state === "selected");
+  el.classList.toggle("is-filtered", filterActive);
 }
 
 export default function FarmMap() {
   const mapEl = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<LeafletMap | null>(null);
-  const markersRef = useRef<Map<string, CircleMarker>>(new Map());
+  const markersRef = useRef<Map<string, Marker>>(new Map());
   const clusterRef = useRef<MarkerClusterGroup | null>(null);
   const visibleMarkerIdsRef = useRef<Set<string>>(new Set());
-  const selectedMarkerRef = useRef<CircleMarker | null>(null);
+  const selectedMarkerRef = useRef<Marker | null>(null);
   const filterActiveRef = useRef(false);
   const leafletRef = useRef<typeof import("leaflet") | null>(null);
 
@@ -290,6 +292,7 @@ export default function FarmMap() {
       const map = L.map(mapEl.current, {
         preferCanvas: true,
         zoomControl: true,
+        tapTolerance: 24,
       }).setView(ESTONIA_CENTER, DEFAULT_ZOOM);
 
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -302,7 +305,6 @@ export default function FarmMap() {
         typeof window !== "undefined" &&
         (window.matchMedia("(pointer: coarse)").matches ||
           "ontouchstart" in window);
-      const markerRenderer = L.canvas({ padding: 0.5, tolerance: 14 });
 
       const cluster = L.markerClusterGroup({
         showCoverageOnHover: false,
@@ -317,8 +319,8 @@ export default function FarmMap() {
         spiderfyDistanceMultiplier: isTouch ? 1.5 : 1.15,
         maxClusterRadius: isTouch ? 64 : 50,
         chunkedLoading: true,
-        chunkInterval: 120,
-        chunkDelay: 30,
+        chunkInterval: 80,
+        chunkDelay: 16,
         iconCreateFunction: (c) => {
           const count = c.getChildCount();
           const size = count < 10 ? 32 : count < 100 ? 38 : count < 1000 ? 46 : 54;
@@ -339,22 +341,17 @@ export default function FarmMap() {
       });
       clusterRef.current = cluster;
 
-      // Touch devices need fatter markers — a 5px-radius dot is below
-      // the comfortable tap target on phones (10px wide). On mobile we
-      // use 8px (16px wide) so taps land more reliably.
-      const baseRadius = isTouch ? 8 : 6;
-      const baseWeight = isTouch ? 1.5 : 1;
-      const allMarkers: CircleMarker[] = [];
+      // Use DOM markers so each dot has a larger click target than the
+      // visible point and works cleanly with markercluster spiderfying.
+      const allMarkers: Marker[] = [];
 
       for (const farm of dataset.records) {
-        const marker = L.circleMarker([farm.lat, farm.lng], {
-          renderer: markerRenderer,
-          radius: baseRadius,
-          color: KIND_COLORS[farm.kind],
-          fillColor: KIND_COLORS[farm.kind],
-          fillOpacity: 0.78,
-          weight: baseWeight,
-          opacity: 0.95,
+        const marker = L.marker([farm.lat, farm.lng], {
+          icon: buildFarmIcon(L, farm, isTouch),
+          keyboard: true,
+          title: farm.name,
+          alt: farm.name,
+          riseOnHover: true,
           // Don't bubble marker clicks to the map (which would close the
           // popup we're about to open and confuse touch handlers).
           bubblingMouseEvents: false,
@@ -369,15 +366,14 @@ export default function FarmMap() {
         });
 
         marker.on("mouseover", () => {
-          setMarkerVisualState(marker, "hover", filterActiveRef.current, isTouch);
-          marker.bringToFront();
+          setMarkerVisualState(marker, "hover", filterActiveRef.current);
           map.getContainer().classList.add("map-marker-hovering");
         });
 
         marker.on("mouseout", () => {
           map.getContainer().classList.remove("map-marker-hovering");
           if (selectedMarkerRef.current !== marker) {
-            setMarkerVisualState(marker, "normal", filterActiveRef.current, isTouch);
+            setMarkerVisualState(marker, "normal", filterActiveRef.current);
           }
         });
 
@@ -386,14 +382,12 @@ export default function FarmMap() {
             setMarkerVisualState(
               selectedMarkerRef.current,
               "normal",
-              filterActiveRef.current,
-              isTouch
+              filterActiveRef.current
             );
           }
 
           selectedMarkerRef.current = marker;
-          setMarkerVisualState(marker, "selected", filterActiveRef.current, isTouch);
-          marker.bringToFront();
+          setMarkerVisualState(marker, "selected", filterActiveRef.current);
 
           if (!marker.getPopup()) {
             marker.bindPopup(buildPopupHtml(farm), {
@@ -409,7 +403,7 @@ export default function FarmMap() {
         marker.on("popupclose", () => {
           if (selectedMarkerRef.current === marker) {
             selectedMarkerRef.current = null;
-            setMarkerVisualState(marker, "normal", filterActiveRef.current, isTouch);
+            setMarkerVisualState(marker, "normal", filterActiveRef.current);
           }
         });
 
@@ -456,13 +450,8 @@ export default function FarmMap() {
     filterActiveRef.current = filterActive;
 
     const visibleLatLngs: [number, number][] = [];
-    const toAdd: CircleMarker[] = [];
-    const toRemove: CircleMarker[] = [];
-
-    const isTouch =
-      typeof window !== "undefined" &&
-      (window.matchMedia("(pointer: coarse)").matches ||
-        "ontouchstart" in window);
+    const toAdd: Marker[] = [];
+    const toRemove: Marker[] = [];
 
     markersRef.current.forEach((marker, id) => {
       const isVisible = nextVisible.has(id);
@@ -472,8 +461,7 @@ export default function FarmMap() {
         setMarkerVisualState(
           marker,
           selectedMarkerRef.current === marker ? "selected" : "normal",
-          filterActive,
-          isTouch
+          filterActive
         );
         const ll = marker.getLatLng();
         visibleLatLngs.push([ll.lat, ll.lng]);
